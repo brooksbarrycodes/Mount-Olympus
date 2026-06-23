@@ -7,9 +7,14 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace apps/client",
+    "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "npm run dev --workspace apps/client",
+    "dev:server": "npm run dev --workspace apps/server",
     "build": "npm run build --workspace apps/client",
     "preview": "npm run preview --workspace apps/client",
-    "typecheck": "npm run typecheck --workspace apps/client"
+    "typecheck": "npm run typecheck --workspace apps/server && npm run typecheck --workspace apps/client"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
   }
 }

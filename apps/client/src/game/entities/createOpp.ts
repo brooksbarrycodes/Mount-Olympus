@@ -17,7 +17,9 @@ export class Opp {
   private target: { x: number; y: number };
   private pauseUntil = 0;
   private readonly speed = 38;
-  private readonly radius: number;
+  private radius: number;
+  /** When true, wander is suspended (the scene is scripting this Opp). */
+  seating = false;
 
   constructor(scene: Phaser.Scene, def: OppDef) {
     this.def = def;
@@ -25,12 +27,13 @@ export class Opp {
     this.target = { ...this.home };
     this.radius = def.wanderRadius ?? 0;
 
-    if (def.id === "zeus") {
+    // divine Opps carry a soft pulsing glow (Zeus brightest)
+    if (def.id === "zeus" || def.divineGlow) {
       this.glow = scene.add
         .image(def.spawn.x, def.spawn.y - 4, TX.glow)
         .setDepth(0)
-        .setScale(1.3)
-        .setAlpha(0.55)
+        .setScale(def.id === "zeus" ? 1.3 : 1.0)
+        .setAlpha(def.id === "zeus" ? 0.55 : 0.32)
         .setBlendMode(Phaser.BlendModes.ADD);
     }
 
@@ -52,9 +55,66 @@ export class Opp {
     body.setAllowGravity(false);
     this.sprite.setData("oppId", def.id);
 
-    if (def.textureKey === TX.zeus) {
-      this.sprite.play(ANIM.zeusIdle);
+    this.playIdle();
+  }
+
+  /** Play this Opp's standing idle (Zeus breathes; gods bob; others static). */
+  private playIdle(): void {
+    if (this.def.textureKey === TX.zeus) {
+      this.sprite.play(ANIM.zeusIdle, true);
+    } else if (this.sprite.scene.anims.exists(`idle:${this.def.textureKey}`)) {
+      this.sprite.play(`idle:${this.def.textureKey}`, true);
+    } else {
+      this.sprite.anims.stop();
+      this.sprite.setFrame(CHAR_ROW.idleDown * FRAMES_PER_ROW);
     }
+  }
+
+  /** Walk toward a point at wander speed; returns true once arrived (and stops). */
+  walkToward(x: number, y: number): boolean {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    const dx = x - this.sprite.x;
+    const dy = y - this.sprite.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 3) {
+      body.setVelocity(0, 0);
+      return true;
+    }
+    const v = this.speed * 1.6;
+    body.setVelocity((dx / dist) * v, (dy / dist) * v);
+    if (Math.abs(dx) > 2) this.sprite.setFlipX(dx < 0);
+    this.shadow.setPosition(this.sprite.x, this.sprite.y + 4);
+    this.glow?.setPosition(this.sprite.x, this.sprite.y - 4);
+    this.sprite.setDepth(this.sprite.y);
+    return false;
+  }
+
+  /** Snap to a fixed spot and stop wandering (used to seat gods at the table). */
+  seatAt(x: number, y: number, faceLeft: boolean): void {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    body.reset(x, y);
+    body.setVelocity(0, 0);
+    this.home.x = x;
+    this.home.y = y;
+    this.target = { x, y };
+    this.sprite.setFlipX(faceLeft);
+    this.shadow.setPosition(x, y + 4);
+    this.glow?.setPosition(x, y - 4);
+    this.sprite.setDepth(this.sprite.y);
+    // adopt the side-facing seated pose; flipX (set above from faceLeft) mirrors
+    // it so a left-side chair has the god looking left and a right-side chair right.
+    this.sprite.anims.stop();
+    this.sprite.setFrame(CHAR_ROW.sitSide * FRAMES_PER_ROW);
+  }
+
+  /** Resume gentle wandering around a new home point (stands back up). */
+  releaseFrom(x: number, y: number, radius: number): void {
+    this.home.x = x;
+    this.home.y = y;
+    this.radius = radius;
+    this.target = { x, y };
+    this.seating = false;
+    this.playIdle();
   }
 
   get x(): number {
@@ -65,6 +125,7 @@ export class Opp {
   }
 
   update(time: number): void {
+    if (this.seating) return;
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
 
     if (this.radius > 0) {

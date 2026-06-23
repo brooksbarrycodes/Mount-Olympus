@@ -26,6 +26,12 @@ export interface GameEventMap {
   "game:location": { id: string; label: string };
   "game:opp-reply": { oppId: string; text: string };
   "game:ready": undefined;
+  /** Open the command desk business dashboard. */
+  "game:open-dashboard": undefined;
+  /** Open the oversight control center (approvals, autonomy, kill switch). */
+  "game:open-control": undefined;
+  /** Open the council meeting overlay with the gods who took their seats. */
+  "game:open-meeting": { attendees: string[] };
 
   // React -> Phaser
   "ui:talk": { oppId: string };
@@ -33,6 +39,12 @@ export interface GameEventMap {
   "ui:enter-location": { locationId: string };
   "ui:hotbar": { action: HotbarAction };
   "ui:send-chat": { oppId: string; text: string };
+  /** Close the command desk dashboard (player stands up). */
+  "ui:close-dashboard": undefined;
+  /** Close the oversight control center. */
+  "ui:close-control": undefined;
+  /** End the council meeting (gods rise, player stands up). */
+  "ui:end-meeting": undefined;
 }
 
 type Handler<T> = (payload: T) => void;

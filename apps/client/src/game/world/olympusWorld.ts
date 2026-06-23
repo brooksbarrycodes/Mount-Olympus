@@ -44,30 +44,40 @@ export const PROP_SCALE: Record<string, number> = {
   [TX.stump]: 1.0,
   [TX.altar]: 1.0,
   [TX.amphora]: 1.0,
+  // Interior furniture (large source art keyed down to room scale)
+  [TX.councilTable]: 0.26,
+  [TX.councilTableLong]: 0.265,
+  [TX.throne]: 0.1,
+  [TX.councilSeat]: 0.058,
+  [TX.councilChairSide]: 0.055,
+  [TX.commandDesk]: 0.11,
+  [TX.candelabra]: 0.066,
+  [TX.wallRelief]: 0.07,
 };
 
 /** Buildings / landmarks. `x,y` are world-space base (bottom-center) points. */
 export const locations: LocationDef[] = [
   {
+    id: "pantheon",
+    name: "The Pantheon",
+    textureKey: TX.pantheon,
+    x: 1800,
+    y: 760,
+    scale: 0.46,
+    enterable: true,
+    description:
+      "The grand seat of Olympus, crowning the peak: mission hall, ledger shrine, and approvals.",
+    doorOffsetY: 30,
+  },
+  {
     id: "temple-zeus",
     name: "Temple of Zeus",
     textureKey: TX.templeZeus,
-    x: 1800,
-    y: 640,
-    scale: 0.92,
+    x: 1330,
+    y: 1150,
+    scale: 0.34,
     enterable: true,
-    description: "A grand sanctuary crowning Olympus. Speak with Zeus and read his decrees.",
-    doorOffsetY: 26,
-  },
-  {
-    id: "hq",
-    name: "Main Headquarters",
-    textureKey: TX.headquarters,
-    x: 880,
-    y: 1180,
-    scale: 0.85,
-    enterable: true,
-    description: "Your command hall: mission board, ledger shrine, approvals.",
+    description: "Zeus's sanctuary. Speak with the overseer and read his decrees.",
     doorOffsetY: 24,
   },
 ];
@@ -82,22 +92,100 @@ export const templePlots: Array<{ x: number; y: number }> = [
   { x: 2380, y: 1860 },
 ];
 
-/** Marble plaza rectangles (world-space), drawn over the grass base. */
-export const plazas: Array<{ x: number; y: number; w: number; h: number }> = [
-  // Temple of Zeus terrace (sacred heart of Olympus)
-  { x: 1480, y: 520, w: 640, h: 420 },
+/** Plaza areas (world-space). Each carries a painterly AI mosaic/garden floor
+ *  overlay (organic edges blend onto grass); `floor` is the texture key. */
+export const plazas: Array<{ x: number; y: number; w: number; h: number; floor: string }> = [
+  // Pantheon terrace crowning the summit
+  { x: 1490, y: 470, w: 620, h: 450, floor: TX.floorPantheon },
+  // Temple of Zeus sanctuary terrace
+  { x: 1130, y: 990, w: 410, h: 320, floor: TX.floorTemple },
   // Central agora
-  { x: 1560, y: 1180, w: 480, h: 360 },
-  // HQ forecourt
-  { x: 700, y: 1180, w: 360, h: 260 },
+  { x: 1560, y: 1180, w: 480, h: 360, floor: TX.floorAgora },
+  // Garden of the Muses (west)
+  { x: 620, y: 1200, w: 320, h: 240, floor: TX.floorGarden },
 ];
 
-/** Path segments (world-space rectangles) connecting key places. */
-export const paths: Array<{ x: number; y: number; w: number; h: number }> = [
-  { x: 1770, y: 940, w: 60, h: 260 }, // temple -> agora
-  { x: 1060, y: 1280, w: 520, h: 56 }, // HQ -> agora
-  { x: 1770, y: 1500, w: 60, h: 200 }, // agora -> spawn
-  { x: 1280, y: 1500, w: 540, h: 52 }, // agora -> west groves
+/** Large painterly ground-detail patches (meadows, rocky outcrops, tilled fields)
+ *  scattered across the open fields to kill empty grass and add charm. Positions
+ *  are CENTERS; `w` is display width (height derived from each texture's aspect).
+ *  These render below props/scatter so tufts and trees layer on top naturally. */
+export const groundPatches: Array<{ key: string; x: number; y: number; w: number; flip?: boolean }> = [
+  // --- west fields ---
+  { key: TX.patchMeadow, x: 360, y: 600, w: 360 },
+  { key: TX.patchRocks, x: 820, y: 470, w: 300 },
+  { key: TX.patchField, x: 300, y: 1010, w: 300 },
+  { key: TX.patchMeadow, x: 520, y: 1770, w: 380, flip: true },
+  { key: TX.patchRocks, x: 980, y: 1900, w: 300, flip: true },
+  { key: TX.patchField, x: 260, y: 1500, w: 280 },
+  // --- east fields ---
+  { key: TX.patchMeadow, x: 2780, y: 580, w: 360, flip: true },
+  { key: TX.patchRocks, x: 3180, y: 860, w: 300 },
+  { key: TX.patchField, x: 2920, y: 1150, w: 300 },
+  { key: TX.patchMeadow, x: 2640, y: 1520, w: 380 },
+  { key: TX.patchRocks, x: 3180, y: 1800, w: 320, flip: true },
+  { key: TX.patchField, x: 2480, y: 1880, w: 280, flip: true },
+  // --- southern belt ---
+  { key: TX.patchMeadow, x: 1480, y: 1820, w: 420 },
+  { key: TX.patchRocks, x: 2080, y: 1880, w: 300 },
+];
+
+/** Aspect ratio (height / width) per patch texture, from the keyed source art. */
+export const PATCH_RATIO: Record<string, number> = {
+  [TX.patchMeadow]: 0.7,
+  [TX.patchRocks]: 0.8,
+  [TX.patchField]: 0.77,
+};
+
+/** Winding dirt roads as polylines; the scene stamps soft path patches along
+ *  each so roads curve naturally (Stardew-style) instead of hard rectangles.
+ *  The summit itself is reached by the grand staircase (see olympusBlueprint). */
+export const pathways: Array<Array<{ x: number; y: number }>> = [
+  // spawn -> agora -> foot of the grand staircase (stops at the foot; the stairs
+  // themselves are marble, so the dirt road must not climb onto them)
+  [
+    { x: 1800, y: 1700 },
+    { x: 1808, y: 1580 },
+    { x: 1796, y: 1460 },
+    { x: 1800, y: 1340 },
+    { x: 1795, y: 1180 },
+  ],
+  // agora -> Temple of Zeus
+  [
+    { x: 1780, y: 1320 },
+    { x: 1640, y: 1296 },
+    { x: 1500, y: 1268 },
+    { x: 1390, y: 1238 },
+    { x: 1330, y: 1210 },
+  ],
+  // agora -> Garden of the Muses (west)
+  [
+    { x: 1640, y: 1330 },
+    { x: 1420, y: 1372 },
+    { x: 1160, y: 1356 },
+    { x: 940, y: 1320 },
+    { x: 800, y: 1300 },
+  ],
+  // agora -> eastern groves
+  [
+    { x: 2010, y: 1334 },
+    { x: 2230, y: 1322 },
+    { x: 2440, y: 1300 },
+    { x: 2640, y: 1286 },
+  ],
+  // Temple of Zeus -> Garden of the Muses
+  [
+    { x: 1300, y: 1250 },
+    { x: 1120, y: 1290 },
+    { x: 940, y: 1300 },
+    { x: 820, y: 1308 },
+  ],
+  // spawn -> southern shore (east)
+  [
+    { x: 1830, y: 1680 },
+    { x: 2060, y: 1740 },
+    { x: 2320, y: 1790 },
+    { x: 2540, y: 1820 },
+  ],
 ];
 
 export interface DecorItem {
@@ -112,73 +200,149 @@ export interface DecorItem {
 
 /** Decorative + interactive-looking props. Origin is bottom-center per item. */
 export const decor: DecorItem[] = [
-  // ---- Temple of Zeus terrace ----
-  { key: TX.statueZeus, x: 1800, y: 770, solid: true },
-  { key: TX.brazier, x: 1610, y: 770, solid: true },
-  { key: TX.brazier, x: 1990, y: 770, solid: true },
-  { key: TX.statueLion, x: 1520, y: 900, solid: true },
-  { key: TX.statueGriffin, x: 2080, y: 900, solid: true },
-  { key: TX.column, x: 1540, y: 600, solid: true },
-  { key: TX.column, x: 2060, y: 600, solid: true },
-  { key: TX.columnGold, x: 1540, y: 760, solid: true },
-  { key: TX.columnGold, x: 2060, y: 760, solid: true },
-  { key: TX.altar, x: 1800, y: 900 },
-  { key: TX.cypress, x: 1470, y: 560 },
-  { key: TX.cypress, x: 2130, y: 560 },
-  { key: TX.cypress, x: 1700, y: 520 },
-  { key: TX.cypress, x: 1900, y: 520 },
+  // ---- Pantheon forecourt (crowning the summit terrace) ----
+  { key: TX.statueLion, x: 1560, y: 905, solid: true },
+  { key: TX.statueGriffin, x: 2040, y: 905, solid: true },
+  { key: TX.brazier, x: 1690, y: 880, solid: true },
+  { key: TX.brazier, x: 1910, y: 880, solid: true },
+  { key: TX.altar, x: 1800, y: 905 },
+  { key: TX.columnGold, x: 1500, y: 830, solid: true },
+  { key: TX.columnGold, x: 2100, y: 830, solid: true },
+  { key: TX.column, x: 1480, y: 640, solid: true },
+  { key: TX.column, x: 2120, y: 640, solid: true },
+  { key: TX.cypress, x: 1460, y: 560 },
+  { key: TX.cypress, x: 2140, y: 560 },
+  { key: TX.cypress, x: 1690, y: 510 },
+  { key: TX.cypress, x: 1910, y: 510 },
+  { key: TX.flowersWhite, x: 1620, y: 900 },
+  { key: TX.flowersWhite, x: 1980, y: 900 },
+
+  // ---- Temple of Zeus sanctuary ----
+  { key: TX.column, x: 1170, y: 1070, solid: true },
+  { key: TX.column, x: 1490, y: 1070, solid: true },
+  { key: TX.brazierTripod, x: 1230, y: 1150, solid: true },
+  { key: TX.brazierTripod, x: 1430, y: 1150, solid: true },
+  { key: TX.statueGoddess, x: 1150, y: 1250, solid: true },
+  { key: TX.statueHorse, x: 1520, y: 1250, solid: true },
+  { key: TX.amphora, x: 1200, y: 1210 },
+  { key: TX.amphora, x: 1470, y: 1210 },
+  { key: TX.cypress, x: 1120, y: 1010 },
+  { key: TX.cypress, x: 1540, y: 1010 },
+  { key: TX.flowersPurple, x: 1260, y: 1230 },
+  { key: TX.flowersPurple, x: 1410, y: 1230 },
 
   // ---- Central agora ----
-  { key: TX.fountain, x: 1800, y: 1340, solid: true },
-  { key: TX.statueGoddess, x: 1620, y: 1240, solid: true },
-  { key: TX.statueAthena, x: 1980, y: 1240, solid: true },
-  { key: TX.column, x: 1600, y: 1480, solid: true },
-  { key: TX.column, x: 2000, y: 1480, solid: true },
-  { key: TX.bush, x: 1700, y: 1500 },
-  { key: TX.bush, x: 1900, y: 1500 },
-  { key: TX.amphora, x: 1640, y: 1420 },
-  { key: TX.amphora, x: 1960, y: 1420 },
+  // y pushed down so the basin (origin is bottom-center) sits concentric on the
+  // sundial hub at world ~(1802,1366) rather than floating above it
+  { key: TX.fountain, x: 1802, y: 1399, solid: true },
+  { key: TX.statueGoddess, x: 1620, y: 1250, solid: true },
+  { key: TX.statueAthena, x: 1980, y: 1250, solid: true },
+  { key: TX.column, x: 1600, y: 1500, solid: true },
+  { key: TX.column, x: 2000, y: 1500, solid: true },
+  { key: TX.columnGold, x: 1600, y: 1230, solid: true },
+  { key: TX.columnGold, x: 2000, y: 1230, solid: true },
+  { key: TX.bush, x: 1690, y: 1500 },
+  { key: TX.bush, x: 1910, y: 1500 },
+  { key: TX.amphora, x: 1650, y: 1430 },
+  { key: TX.amphora, x: 1950, y: 1430 },
+  { key: TX.flowersPurple, x: 1720, y: 1300 },
+  { key: TX.flowersYellow, x: 1880, y: 1300 },
+  { key: TX.flowersYellow, x: 1700, y: 1420 },
+  { key: TX.flowersPurple, x: 1900, y: 1420 },
 
-  // ---- HQ forecourt ----
-  { key: TX.column, x: 740, y: 1220, solid: true },
-  { key: TX.column, x: 1020, y: 1220, solid: true },
-  { key: TX.brazierTripod, x: 760, y: 1320, solid: true },
-  { key: TX.brazierTripod, x: 1000, y: 1320, solid: true },
-  { key: TX.statueHorse, x: 880, y: 1400, solid: true },
-  { key: TX.pool, x: 620, y: 1360, solid: true },
-  { key: TX.amphora, x: 700, y: 1260 },
-  { key: TX.amphora, x: 1060, y: 1260 },
+  // ---- Garden of the Muses (west) ----
+  { key: TX.pool, x: 700, y: 1320, solid: true },
+  { key: TX.column, x: 620, y: 1250, solid: true },
+  { key: TX.columnBroken, x: 900, y: 1250, solid: true },
+  { key: TX.statueHorse, x: 760, y: 1410, solid: true },
+  { key: TX.blossomTree, x: 560, y: 1240 },
+  { key: TX.oliveTree, x: 920, y: 1380 },
+  { key: TX.flowersPurple, x: 640, y: 1380 },
+  { key: TX.flowersWhite, x: 820, y: 1380 },
+  { key: TX.flowersYellow, x: 700, y: 1250 },
+  { key: TX.bush, x: 600, y: 1420 },
+  { key: TX.bush, x: 880, y: 1420 },
 
-  // ---- Groves & nature (frames the playable space) ----
-  { key: TX.cypress, x: 360, y: 720 },
-  { key: TX.oliveTree, x: 520, y: 640 },
-  { key: TX.treeGreen, x: 680, y: 700 },
-  { key: TX.oliveTree, x: 240, y: 1020 },
-  { key: TX.cypress, x: 300, y: 1320 },
-  { key: TX.treeGreen, x: 460, y: 1560 },
-  { key: TX.oliveTree, x: 640, y: 1640 },
-  { key: TX.blossomTree, x: 980, y: 1620 },
+  // ---- NW forest ----
+  { key: TX.cypress, x: 300, y: 640 },
+  { key: TX.oliveTree, x: 440, y: 560 },
+  { key: TX.treeGreen, x: 600, y: 640 },
+  { key: TX.cypress, x: 220, y: 820 },
+  { key: TX.oliveTree, x: 380, y: 900 },
+  { key: TX.treeGreen, x: 560, y: 860 },
+  { key: TX.blossomTree, x: 720, y: 760 },
+  { key: TX.treeGreen, x: 180, y: 1080 },
+  { key: TX.oliveTree, x: 360, y: 1160 },
+  { key: TX.cypress, x: 540, y: 1120 },
+  { key: TX.bush, x: 300, y: 980 },
+  { key: TX.bush, x: 660, y: 980 },
+  { key: TX.rock, x: 480, y: 760 },
+  { key: TX.stump, x: 620, y: 1080 },
+  { key: TX.flowersWhite, x: 420, y: 700 },
+  { key: TX.flowersYellow, x: 560, y: 1000 },
+
+  // ---- SW woods ----
+  { key: TX.cypress, x: 260, y: 1420 },
+  { key: TX.oliveTree, x: 440, y: 1560 },
+  { key: TX.treeGreen, x: 620, y: 1640 },
+  { key: TX.blossomTree, x: 380, y: 1720 },
+  { key: TX.treeGreen, x: 820, y: 1700 },
+  { key: TX.oliveTree, x: 1020, y: 1640 },
+  { key: TX.cypress, x: 200, y: 1640 },
+  { key: TX.bush, x: 520, y: 1680 },
+  { key: TX.bush, x: 720, y: 1560 },
+  { key: TX.rock, x: 340, y: 1560 },
+  { key: TX.columnBroken, x: 480, y: 1760 },
+  { key: TX.flowersPurple, x: 640, y: 1720 },
+
+  // ---- NE forest + olive hills ----
+  { key: TX.oliveTree, x: 2360, y: 600 },
+  { key: TX.cypress, x: 2540, y: 680 },
+  { key: TX.treeGreen, x: 2720, y: 760 },
+  { key: TX.oliveTree, x: 2900, y: 640 },
+  { key: TX.cypress, x: 3080, y: 760 },
+  { key: TX.treeGreen, x: 2480, y: 900 },
+  { key: TX.blossomTree, x: 2680, y: 980 },
+  { key: TX.oliveTree, x: 2960, y: 980 },
+  { key: TX.bush, x: 2560, y: 820 },
+  { key: TX.bush, x: 2860, y: 860 },
+  { key: TX.rock, x: 2460, y: 760 },
+  { key: TX.stump, x: 2780, y: 880 },
+  { key: TX.flowersYellow, x: 2620, y: 720 },
+  { key: TX.flowersWhite, x: 2980, y: 880 },
+
+  // ---- E / SE groves near the shore ----
+  { key: TX.cypress, x: 2520, y: 1240 },
+  { key: TX.oliveTree, x: 2720, y: 1320 },
+  { key: TX.blossomTree, x: 2520, y: 1460 },
+  { key: TX.treeGreen, x: 2740, y: 1540 },
+  { key: TX.oliveTree, x: 2400, y: 1640 },
+  { key: TX.cypress, x: 2640, y: 1720 },
+  { key: TX.treeGreen, x: 2940, y: 1300 },
+  { key: TX.bush, x: 2480, y: 1360 },
+  { key: TX.bush, x: 2820, y: 1440 },
+  { key: TX.rock, x: 2600, y: 1180 },
+  { key: TX.columnBroken, x: 2520, y: 1720 },
+  { key: TX.flowersPurple, x: 2680, y: 1620 },
+
+  // ---- S meadow band (between agora and spawn) ----
+  { key: TX.treeGreen, x: 1480, y: 1740 },
+  { key: TX.oliveTree, x: 2120, y: 1720 },
+  { key: TX.blossomTree, x: 1320, y: 1640 },
+  { key: TX.cypress, x: 2240, y: 1640 },
+  { key: TX.bush, x: 1560, y: 1640 },
+  { key: TX.bush, x: 2080, y: 1600 },
+  { key: TX.flowersYellow, x: 1640, y: 1680 },
+  { key: TX.flowersWhite, x: 2000, y: 1700 },
+  { key: TX.rock, x: 1400, y: 1560 },
+
+  // ---- mid-field copses to break open space ----
   { key: TX.treeGreen, x: 1180, y: 760 },
-  { key: TX.cypress, x: 1080, y: 600 },
-  { key: TX.oliveTree, x: 2380, y: 640 },
-  { key: TX.cypress, x: 2560, y: 720 },
-  { key: TX.treeGreen, x: 2720, y: 980 },
-  { key: TX.blossomTree, x: 2500, y: 1240 },
-  { key: TX.oliveTree, x: 2680, y: 1480 },
-  { key: TX.cypress, x: 2400, y: 1640 },
-  { key: TX.treeGreen, x: 1500, y: 1780 },
-  { key: TX.oliveTree, x: 2100, y: 1760 },
-  { key: TX.blossomTree, x: 1300, y: 1180 },
-
-  { key: TX.bush, x: 1280, y: 1000 },
-  { key: TX.bush, x: 2320, y: 1020 },
-  { key: TX.bush, x: 1480, y: 1640 },
-  { key: TX.bush, x: 2160, y: 1500 },
-  { key: TX.stump, x: 520, y: 880 },
-  { key: TX.stump, x: 2600, y: 1180 },
-  { key: TX.rock, x: 1180, y: 1420 },
-  { key: TX.rock, x: 2460, y: 880 },
-  { key: TX.rock, x: 700, y: 980 },
-  { key: TX.columnBroken, x: 2520, y: 1700 },
-  { key: TX.columnBroken, x: 420, y: 1700 },
+  { key: TX.cypress, x: 1060, y: 620 },
+  { key: TX.oliveTree, x: 1280, y: 900 },
+  { key: TX.bush, x: 1160, y: 980 },
+  { key: TX.blossomTree, x: 2300, y: 1080 },
+  { key: TX.bush, x: 2340, y: 1180 },
+  { key: TX.rock, x: 1120, y: 1440 },
+  { key: TX.flowersPurple, x: 1040, y: 900 },
 ];

@@ -65,13 +65,16 @@ def grid_map(path):
     print("\n".join(lines))
 
 
-def preview(path, out, scale=6, maxcols=48, maxrows=48):
+def preview(path, out, scale=6, maxcols=48, maxrows=48, offx=0, offy=0):
+    """Enlarged, grid-labeled preview. Labels show ABSOLUTE tile col,row so a
+    cropped region (offx/offy) still maps back to real sheet indices."""
     img = Image.open(path).convert("RGBA")
     W, H = img.size
-    cols, rows = min(W // TILE, maxcols), min(H // TILE, maxrows)
-    crop = img.crop((0, 0, cols * TILE, rows * TILE))
+    tcols, trows = W // TILE, H // TILE
+    cols = min(tcols - offx, maxcols)
+    rows = min(trows - offy, maxrows)
+    crop = img.crop((offx * TILE, offy * TILE, (offx + cols) * TILE, (offy + rows) * TILE))
     big = crop.resize((cols * TILE * scale, rows * TILE * scale), Image.NEAREST)
-    # checker backdrop so transparency is visible
     bg = Image.new("RGBA", big.size, (40, 40, 48, 255))
     bg.alpha_composite(big)
     d = ImageDraw.Draw(bg)
@@ -81,9 +84,9 @@ def preview(path, out, scale=6, maxcols=48, maxrows=48):
         d.line([(0, ry * TILE * scale), (cols * TILE * scale, ry * TILE * scale)], fill=(255, 0, 128, 180))
     for ry in range(rows):
         for cx in range(cols):
-            d.text((cx * TILE * scale + 2, ry * TILE * scale + 1), f"{cx},{ry}", fill=(255, 255, 0, 255))
+            d.text((cx * TILE * scale + 2, ry * TILE * scale + 1), f"{cx + offx},{ry + offy}", fill=(255, 255, 0, 255))
     bg.convert("RGB").save(out)
-    print("wrote", out, bg.size)
+    print("wrote", out, bg.size, f"region off=({offx},{offy}) {cols}x{rows} of {tcols}x{trows}")
 
 
 def _components(mask, W, H, gap):
@@ -187,7 +190,7 @@ if __name__ == "__main__":
     if cmd == "map":
         grid_map(sys.argv[2])
     elif cmd == "preview":
-        preview(*([sys.argv[2], sys.argv[3]] + [int(x) for x in sys.argv[4:]]))
+        preview(sys.argv[2], sys.argv[3], *[int(x) for x in sys.argv[4:]])
     elif cmd == "extract":
         extract(sys.argv[2], sys.argv[3], *[int(x) for x in sys.argv[4:]])
     elif cmd == "contact":

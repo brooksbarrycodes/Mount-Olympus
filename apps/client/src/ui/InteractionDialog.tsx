@@ -6,6 +6,7 @@ import { OppPortrait } from "./OppPortrait";
 interface Props {
   data: OppDialogData;
   messages: ChatMessage[];
+  thinking?: boolean;
   onSend: (text: string) => void;
   onClose: () => void;
   onEnterTemple: (locationId: string) => void;
@@ -16,14 +17,30 @@ interface Props {
  * portrait, live status, and a chat thread at the bottom. A disabled voice
  * control marks where microphone + per-Opp voices land later.
  */
-export function InteractionDialog({ data, messages, onSend, onClose, onEnterTemple }: Props) {
+export function InteractionDialog({
+  data,
+  messages,
+  thinking = false,
+  onSend,
+  onClose,
+  onEnterTemple,
+}: Props) {
   const [draft, setDraft] = useState("");
   const threadRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [messages, thinking]);
+
+  // Focus the chat input on the NEXT frame rather than immediately. The keypress
+  // that opened this dialog (the interact key "E") is fully processed before the
+  // field is focused, so it can never leak a stray "e" into the message box.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +52,7 @@ export function InteractionDialog({ data, messages, onSend, onClose, onEnterTemp
 
   const submit = () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || thinking) return;
     onSend(text);
     setDraft("");
   };
@@ -97,6 +114,18 @@ export function InteractionDialog({ data, messages, onSend, onClose, onEnterTemp
                   <span className="chat-text">{m.text}</span>
                 </div>
               ))}
+              {thinking && (
+                <div className="chat-line chat-opp chat-thinking" aria-label={`${data.name} is thinking`}>
+                  <span className="chat-who">{data.name}</span>
+                  <span className="chat-text">
+                    <span className="thinking-dots">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="chat-input-row">
@@ -104,6 +133,7 @@ export function InteractionDialog({ data, messages, onSend, onClose, onEnterTemp
                 Hold to speak
               </button>
               <input
+                ref={inputRef}
                 className="chat-input"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -111,9 +141,8 @@ export function InteractionDialog({ data, messages, onSend, onClose, onEnterTemp
                   if (e.key === "Enter") submit();
                 }}
                 placeholder={`Message ${data.name}…`}
-                autoFocus
               />
-              <button className="send-btn" onClick={submit}>
+              <button className="send-btn" onClick={submit} disabled={thinking}>
                 Send
               </button>
             </div>

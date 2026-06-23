@@ -14,7 +14,10 @@ export function createGameConfig(parent: HTMLElement): Phaser.Types.Core.GameCon
   return {
     type: Phaser.AUTO,
     parent,
-    backgroundColor: P.skyLow,
+    // Soft cloud tone: with CameraSystem's dynamic min-zoom the world always
+    // fills the viewport, but if anything ever peeks past the edge it reads as
+    // a sea of clouds rather than a harsh blue void.
+    backgroundColor: P.cloud,
     pixelArt: true,
     scale: {
       mode: Phaser.Scale.RESIZE,

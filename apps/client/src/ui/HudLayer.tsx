@@ -9,7 +9,6 @@ import { HallOfAlliesOverlay } from "./HallOfAlliesOverlay";
 
 const COMING_SOON: Partial<Record<HotbarAction, string>> = {
   missions: "Mission scrolls expand here soon.",
-  ledger: "The Ledger Sanctum is coming soon.",
   oracle: "The ABCII Oracle awakens in a later update.",
   map: "The full Olympus map view is coming soon.",
 };
@@ -64,6 +63,10 @@ export function HudLayer() {
       bridge.emit("ui:hotbar", { action });
       if (action === "hall") {
         setHallOpen((v) => !v);
+        return;
+      }
+      if (action === "ledger") {
+        bridge.emit("game:open-control", undefined);
         return;
       }
       const msg = COMING_SOON[action];

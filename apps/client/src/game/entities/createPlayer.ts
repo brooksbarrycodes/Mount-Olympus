@@ -12,7 +12,9 @@ export class Player {
   private readonly shadow: Phaser.GameObjects.Image;
   private facing: Direction = "down";
   private moving = false;
+  private sprinting = false;
   readonly speed = 165;
+  readonly sprintMultiplier = 1.8;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.shadow = scene.add
@@ -36,12 +38,15 @@ export class Player {
   }
 
   /** Apply a normalized movement vector (each component in [-1, 1]). */
-  move(vx: number, vy: number): void {
+  move(vx: number, vy: number, sprint = false): void {
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.setVelocity(vx * this.speed, vy * this.speed);
+    const speed = this.speed * (sprint && (vx !== 0 || vy !== 0) ? this.sprintMultiplier : 1);
+    body.setVelocity(vx * speed, vy * speed);
 
     const wasMoving = this.moving;
     this.moving = vx !== 0 || vy !== 0;
+    const wasSprinting = this.sprinting;
+    this.sprinting = sprint && this.moving;
 
     let nextFacing = this.facing;
     if (Math.abs(vx) > Math.abs(vy)) {
@@ -53,7 +58,7 @@ export class Player {
       nextFacing = "down";
     }
 
-    if (nextFacing !== this.facing || this.moving !== wasMoving) {
+    if (nextFacing !== this.facing || this.moving !== wasMoving || this.sprinting !== wasSprinting) {
       this.facing = nextFacing;
       this.playState();
     }
@@ -67,6 +72,26 @@ export class Player {
     };
     const a = map[this.facing];
     this.sprite.play(this.moving ? a.walk : a.idle, true);
+    // legs churn faster when sprinting
+    this.sprite.anims.timeScale = this.moving && this.sprinting ? 1.6 : 1;
+  }
+
+  /** Teleport to a fixed spot, stop, and face a direction (used when sitting). */
+  snapTo(x: number, y: number, facing: Direction = "down", seated = false): void {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    body.reset(x, y);
+    body.setVelocity(0, 0);
+    this.facing = facing;
+    this.moving = false;
+    this.sprinting = false;
+    if (facing === "side") this.sprite.setFlipX(false);
+    if (seated) {
+      this.sprite.anims.stop();
+      this.sprite.setFrame(CHAR_ROW.sit * FRAMES_PER_ROW);
+    } else {
+      this.playState();
+    }
+    this.sync();
   }
 
   /** Keep shadow + depth in sync; call every frame. */

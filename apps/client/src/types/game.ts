@@ -42,6 +42,10 @@ export interface OppDef {
   greeting: string;
   /** If set, their dialog offers entry to this location interior. */
   homeLocationId?: string;
+  /** Business this god heads (links to businessStats for the command dashboard). */
+  businessId?: string;
+  /** Render a soft divine glow under this Opp (Zeus always glows). */
+  divineGlow?: boolean;
 }
 
 /** A building/landmark placed on the map. */
