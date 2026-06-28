@@ -56,6 +56,10 @@ export interface InteriorDef {
   headSeat?: { x: number; y: number };
   /** Command desk base (bottom-center). Sitting here opens the dashboard. */
   desk?: { x: number; y: number };
+  /** Scriptorium scroll stacks — opens document workspace. */
+  scriptorium?: { x: number; y: number };
+  /** Trading desk in Tyche's temple — opens the arb monitor. */
+  tradingDesk?: { x: number; y: number };
   /** Back-dais throne base (bottom-center); the player's seat at the desk. */
   throne?: { x: number; y: number };
   /** God Opp ids that gather at the table for meetings. */
@@ -84,6 +88,7 @@ export const interiors: Record<string, InteriorDef> = {
     seatsPerSide: 3,
     headSeat: { x: 460, y: 326 },
     desk: { x: 460, y: 250 },
+    scriptorium: { x: 120, y: 470 },
     attendees: ["zeus", "oracle", "apollo"],
     candelabra: [
       { x: 300, y: 250 },
@@ -106,10 +111,13 @@ export const interiors: Record<string, InteriorDef> = {
       { key: TX.columnGold, x: 670, y: 230 },
       { key: TX.amphora, x: 150, y: 640 },
       { key: TX.amphora, x: 770, y: 640 },
+      { key: TX.amphora, x: 120, y: 470, scale: 0.85 },
+      { key: TX.amphora, x: 145, y: 485, scale: 0.75 },
     ],
     placards: [
       { x: 460, y: 110, title: "Command Desk", subtitle: "Sit to review your empire" },
       { x: 460, y: 612, title: "Council Table", subtitle: "Sit at the head to convene" },
+      { x: 120, y: 420, title: "Scriptorium", subtitle: "Research documents & reports" },
     ],
   },
   "temple-zeus": {
@@ -146,5 +154,38 @@ export const interiors: Record<string, InteriorDef> = {
       { x: 410, y: 410, title: "Decree Board", subtitle: "Pantheon-wide orders" },
     ],
     occupant: { oppId: "zeus", x: 410, y: 300 },
+  },
+  "temple-tyche": {
+    id: "temple-tyche",
+    name: "Temple of Tyche",
+    width: 820,
+    height: 560,
+    accent: "#2a9d8f",
+    theme: "temple",
+    rug: "#1a4d47",
+    entry: { x: 410, y: 490 },
+    exit: { x: 410, y: 526 },
+    braziers: [
+      { x: 180, y: 250 },
+      { x: 640, y: 250 },
+      { x: 280, y: 380 },
+      { x: 540, y: 380 },
+    ],
+    banners: [230, 410, 590],
+    dais: { x: 410, y: 230, w: 220, statue: TX.statueGoddess },
+    tradingDesk: { x: 620, y: 420 },
+    props: [
+      { key: TX.columnGold, x: 130, y: 250 },
+      { key: TX.columnGold, x: 690, y: 250 },
+      { key: TX.altar, x: 410, y: 330 },
+      { key: TX.commandDesk, x: 620, y: 420, scale: 0.55 },
+      { key: TX.amphora, x: 300, y: 480 },
+      { key: TX.amphora, x: 520, y: 480 },
+    ],
+    placards: [
+      { x: 410, y: 150, title: "Wheel of Fortune", subtitle: "Two venues, one lock" },
+      { x: 620, y: 360, title: "Trading Desk", subtitle: "Press E to open the monitor" },
+    ],
+    occupant: { oppId: "tyche", x: 410, y: 300 },
   },
 };

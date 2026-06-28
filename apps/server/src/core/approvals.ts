@@ -1,8 +1,7 @@
 import { db, nowIso, kvGet, kvSet } from "./db.ts";
 import * as audit from "./auditLog.ts";
 import { checkPublish, type PublishPayload } from "./guardrails.ts";
-import { recordExpense, recordRevenue } from "./ledger.ts";
-import { config } from "../config.ts";
+import { recordExpense } from "./ledger.ts";
 
 /**
  * The approval queue and the trust ladder.
@@ -182,15 +181,7 @@ export function decide(
     // "Execute" the action: record the listing's cost as a real expense.
     const spend = Number(payload.spend ?? payload.cost ?? 0);
     if (spend > 0) recordExpense(row.business_id, `Listing cost (${row.action_type})`, spend, row.agent);
-    // In mock mode, simulate the listing's first sale so the dashboard's
-    // profit/margin move and the Oracle's niche prediction can be graded.
     // Real mode never fabricates revenue - that arrives from real sales.
-    if (config.adapterMode === "mock" && row.business_id) {
-      const price = Number(payload.price ?? 0);
-      if (price > 0) {
-        recordRevenue(row.business_id, "Projected first sale (mock)", price, `mock-${id}`);
-      }
-    }
     audit.record({
       agent: row.agent,
       action: "publish",

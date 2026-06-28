@@ -83,6 +83,17 @@ export class CameraSystem {
       // snappier follow so zoom tracks the scroll wheel instead of drifting
       this.cam.setZoom(Phaser.Math.Linear(z, this.targetZoom, 0.22));
     }
+    this.snapScrollToPixelGrid();
+  }
+
+  /** Align scroll to the world pixel grid at the current zoom (prevents tile seams). */
+  private snapScrollToPixelGrid(): void {
+    const z = this.cam.zoom;
+    if (z <= 0) return;
+    this.cam.setScroll(
+      Math.round(this.cam.scrollX * z) / z,
+      Math.round(this.cam.scrollY * z) / z,
+    );
   }
 
   /** Brief screen shake / flash hook for divine moments (used later). */

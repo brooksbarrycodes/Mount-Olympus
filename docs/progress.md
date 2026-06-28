@@ -354,3 +354,27 @@ Completely reimagined the Pantheon interior as a living, domed command hall.
 - [x] QA: typecheck + production build pass; `tools/preview_interior.py` renders
       an offline schematic (`tools/preview/pantheon_interior.png`) used to verify
       the table/seat/desk/throne layout before dev-server review.
+
+## Task — Tyche cross-venue arb
+
+- [x] Phase 0: `TYCHE_`/`KALSHI_`/`PROPHETX_` config, `.env.example`, docs under `docs/tyche/`.
+- [x] Phase 1: models, SQLite schema, repositories, ledger seed `tyche-arb`.
+- [x] Phase 2: Kalshi adapter (auth, REST, mapper, mock fallback).
+- [x] Phase 3: ProphetX stub (login skeleton, awaiting_credentials health).
+- [x] Phase 4–7: matching, pricing, risk, execution engines.
+- [x] Phase 8: `tycheLoop`, `/tyche/*` routes, SSE stream, Zeus `tyche_status` tool.
+- [x] Phase 9: Tyche opp, Temple east of agora (~2900,1180), interior + trading desk.
+- [x] Phase 10: `TycheTradingFloor.tsx` overlay (yellow/green/red bundles).
+- [x] Phase 11: unit tests + `smoke-tyche.ts`.
+- [ ] Phase 12: ProphetX sandbox bake-off when keys live (see `docs/tyche/sandbox-bakeoff.md`).
+
+## Task — Treasury, Zeus powers, Audio, Linear HQ
+
+- [x] Phase 1: Treasury module (`schema`, `ledger`, `recurring`, `seed`, REST routes); zero business baselines; Anthropic/TTS/Tyche PnL auto-hooks; Zeus treasury tools.
+- [x] Phase 2: Real drachma HUD (poll `/treasury/summary`, red negative coin, `TreasuryBreakdown` with god heads + crown).
+- [x] Phase 3: Zeus voice louder/faster; music quieter; Oracle voice `HH3kybY6uEJ2ebSa9Vy3`.
+- [x] Phase 4: Missions API + Zeus tools + `MissionPanel` countdown + `MissionsOverlay`.
+- [x] Phase 5: Documents async research pipeline + Scriptorium interactable + `DocumentWorkspace`.
+- [x] Phase 6: Linear GraphQL adapter (mock fallback), REST routes, Zeus Linear tools.
+- [x] Phase 7: `CommandDashboard` → Pantheon HQ (Overview/Tasks/Missions/Documents/Businesses/Treasury tabs + `LinearBoard`).
+- [x] Phase 8: `treasury.test.ts`, `smoke-treasury.ts`, `docs/treasury/manual-qa.md`, `.env.example` treasury/Linear vars.

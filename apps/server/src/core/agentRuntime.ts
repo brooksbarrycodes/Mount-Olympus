@@ -21,6 +21,7 @@ export interface AgentRunResult {
   text: string;
   toolsUsed: string[];
   costUsd: number;
+  provider: "mock" | "anthropic";
 }
 
 const MAX_STEPS = 8;
@@ -30,14 +31,20 @@ const MAX_STEPS = 8;
  * the model returns a final text answer or we hit the step ceiling. Every tool
  * call is written to the audit log with its cost.
  */
-export async function runAgent(agent: Agent, userMessage: string): Promise<AgentRunResult> {
+export async function runAgent(
+  agent: Agent,
+  userMessage: string,
+  opts?: { priorMessages?: LlmMessage[] },
+): Promise<AgentRunResult> {
   const llm = getLlm();
   const toolByName = new Map(agent.tools.map((t) => [t.spec.name, t]));
   const specs: ToolSpec[] = agent.tools.map((t) => t.spec);
-  const messages: LlmMessage[] = [{ role: "user", content: userMessage }];
+  const prior = opts?.priorMessages ?? [];
+  const messages: LlmMessage[] = [...prior, { role: "user", content: userMessage }];
 
   const toolsUsed: string[] = [];
   let costUsd = 0;
+  let provider: "mock" | "anthropic" = "mock";
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await llm.complete({
@@ -48,9 +55,10 @@ export async function runAgent(agent: Agent, userMessage: string): Promise<Agent
       meta: { agent: agent.name },
     });
     costUsd += res.usage.costUsd;
+    provider = res.provider;
 
     if (res.toolCalls.length === 0) {
-      return { text: res.text.trim(), toolsUsed, costUsd };
+      return { text: res.text.trim(), toolsUsed, costUsd, provider };
     }
 
     // Record the assistant's tool-call turn, then execute each tool.
@@ -92,8 +100,9 @@ export async function runAgent(agent: Agent, userMessage: string): Promise<Agent
   }
 
   return {
-    text: "The council deliberated at length but reached no final decree. Try again, Archon.",
+    text: "I hit my step limit before finishing. Try asking again with a narrower question.",
     toolsUsed,
     costUsd,
+    provider,
   };
 }

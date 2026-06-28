@@ -28,6 +28,7 @@ const GOD_TEXTURES: Record<string, string> = {
   demeter: TX.demeter,
   apollo: TX.apollo,
   oracle: TX.oracle,
+  tyche: TX.tyche,
 };
 
 /**
@@ -46,6 +47,17 @@ export function loadWorldImages(scene: Phaser.Scene): void {
   // terrain tilesets are loaded as plain images; the tilemap slices them
   for (const [key, url] of Object.entries(TILESET_ASSETS)) {
     if (!scene.textures.exists(key)) scene.load.image(key, url);
+  }
+}
+
+/** Force nearest-neighbor filtering on tilesets and interior floors (prevents seam bleed). */
+export function configurePixelArtTextures(scene: Phaser.Scene): void {
+  const nearest = Phaser.Textures.FilterMode.NEAREST;
+  for (const key of Object.keys(TILESET_ASSETS)) {
+    if (scene.textures.exists(key)) scene.textures.get(key).setFilter(nearest);
+  }
+  if (scene.textures.exists(TX.marbleFloor)) {
+    scene.textures.get(TX.marbleFloor).setFilter(nearest);
   }
 }
 

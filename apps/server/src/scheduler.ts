@@ -1,4 +1,5 @@
 import { runDailyReport } from "./agents/oracle.ts";
+import { accrueRecurring } from "./treasury/recurring.ts";
 
 /**
  * Lightweight scheduler. The Oracle does NOT run continuously - she produces
@@ -20,6 +21,11 @@ export function startScheduler(): void {
     runDailyReport().catch((err) => {
       console.error("[scheduler] daily report failed:", err);
     });
+    try {
+      accrueRecurring();
+    } catch (err) {
+      console.error("[scheduler] recurring accrual failed:", err);
+    }
   }, DAY_MS);
   // Do not block process exit on this timer.
   timer.unref?.();

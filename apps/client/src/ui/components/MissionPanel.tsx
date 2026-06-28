@@ -1,19 +1,18 @@
 import type { MissionItem } from "@/types/game";
+import { isUrgent } from "@/game/missions/missionTime";
 
 interface Props {
   locationLabel: string;
   missions: MissionItem[];
+  nowMs: number;
   alerts: number;
   alliesOnline: number;
+  onExpand?: () => void;
 }
 
-/**
- * Top-left mission HUD overlay: where you are, your current directives, and a
- * couple of at-a-glance counts. Sits over the map; not a separate page.
- */
-export function MissionPanel({ locationLabel, missions, alerts, alliesOnline }: Props) {
+export function MissionPanel({ locationLabel, missions, nowMs, alerts, alliesOnline, onExpand }: Props) {
   return (
-    <div className="mission-panel hud-card">
+    <div className="mission-panel hud-card" onClick={onExpand} role={onExpand ? "button" : undefined}>
       <div className="hud-card-header">
         <span className="sigil">⚔</span>
         <div>
@@ -23,12 +22,22 @@ export function MissionPanel({ locationLabel, missions, alerts, alliesOnline }: 
       </div>
 
       <ul className="mission-list">
-        {missions.map((m) => (
-          <li key={m.id} className={`mission-item ${m.done ? "done" : ""}`}>
-            <span className="mission-check">{m.done ? "✓" : "◇"}</span>
-            <span>{m.label}</span>
+        {missions.map((m) => {
+          const urgent = m.dueAt ? isUrgent(m.dueAt, nowMs) : false;
+          return (
+            <li key={m.id} className={`mission-item ${m.done ? "done" : ""} ${urgent ? "mission-urgent" : ""}`}>
+              <span className="mission-check">{m.done ? "✓" : "◇"}</span>
+              <span className="mission-label">{m.label}</span>
+              {m.countdown && <span className="mission-countdown">{m.countdown}</span>}
+            </li>
+          );
+        })}
+        {missions.length === 0 && (
+          <li className="mission-item mission-empty">
+            <span className="mission-check">◇</span>
+            <span className="mission-label">No reminders — ask Zeus to add one</span>
           </li>
-        ))}
+        )}
       </ul>
 
       <div className="mission-meta">

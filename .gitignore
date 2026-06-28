@@ -31,6 +31,10 @@ pnpm-debug.log*
 # Local brainstorm artifacts (mockups + companion server state)
 .superpowers/
 
+# Background music — too large for GitHub; keep locally in /audio (see audio/README.md)
+audio/*.wav
+audio/*.mp3
+
 # Raw asset archive caches (processed assets live in apps/client/public/assets)
 assets/raw/
 

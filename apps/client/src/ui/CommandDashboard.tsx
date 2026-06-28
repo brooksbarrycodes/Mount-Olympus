@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   businesses,
-  etsyOrders,
-  expenseBreakdown,
   totals,
   profitOf,
   marginOf,
   formatUsd,
   formatPct,
 } from "@/game/world/businessStats";
-import { agentApi } from "@/net/agentApi";
+import { agentApi, type TreasurySummary, type TreasuryEntry, type Mission, type DocumentRecord } from "@/net/agentApi";
+import { LinearBoard } from "./linear/LinearBoard";
+import { MissionsOverlay } from "./MissionsOverlay";
+import { DocumentWorkspace } from "./DocumentWorkspace";
 
-type Tab = "overview" | "businesses" | "etsy" | "expenses";
+type Tab = "overview" | "tasks" | "missions" | "documents" | "businesses" | "expenses";
 
 /** Unified display row, populated from the live ledger or the mock fallback. */
 interface BizRow {
@@ -50,9 +51,11 @@ const mockRows: BizRow[] = businesses.map((b) => ({
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "tasks", label: "Tasks" },
+  { id: "missions", label: "Missions" },
+  { id: "documents", label: "Documents" },
   { id: "businesses", label: "Businesses" },
-  { id: "etsy", label: "Etsy" },
-  { id: "expenses", label: "Expenses" },
+  { id: "expenses", label: "Treasury" },
 ];
 
 interface Props {
@@ -66,15 +69,25 @@ interface Props {
  */
 export function CommandDashboard({ onClose }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
-  // Live ledger when the agent server is up; falls back to the mock figures.
   const [rows, setRows] = useState<BizRow[]>(mockRows);
   const [t, setT] = useState<TotalsRow>(() => totals());
+  const [treasury, setTreasury] = useState<TreasurySummary | null>(null);
+  const [treasuryEntries, setTreasuryEntries] = useState<TreasuryEntry[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    agentApi
-      .ledger()
-      .then((data) => {
+    Promise.all([
+      agentApi.ledger(),
+      agentApi.treasurySummary(),
+      agentApi.treasuryEntries(),
+      agentApi.missions(),
+      agentApi.documents(),
+    ])
+      .then(([data, ts, te, ms, docs]) => {
         if (cancelled) return;
         setRows(
           data.businesses.map((b) => ({
@@ -91,9 +104,13 @@ export function CommandDashboard({ onClose }: Props) {
           })),
         );
         setT(data.totals);
+        setTreasury(ts);
+        setTreasuryEntries(te.entries);
+        setMissions(ms.missions.filter((m) => !m.completedAt));
+        setDocuments(docs.documents);
       })
       .catch(() => {
-        /* server offline -> keep the mock fallback already in state */
+        /* server offline -> keep mock fallback */
       });
     return () => {
       cancelled = true;
@@ -121,8 +138,8 @@ export function CommandDashboard({ onClose }: Props) {
       <div className="dash-panel" onClick={(e) => e.stopPropagation()}>
         <header className="dash-head">
           <div>
-            <div className="dash-eyebrow">Command Desk</div>
-            <h2 className="dash-title">Empire Ledger</h2>
+            <div className="dash-eyebrow">Pantheon HQ</div>
+            <h2 className="dash-title">Command Desk</h2>
           </div>
           <button className="dash-close" onClick={onClose} aria-label="Close">
             Esc ✕
@@ -145,11 +162,32 @@ export function CommandDashboard({ onClose }: Props) {
           {tab === "overview" && (
             <>
               <div className="dash-kpis">
-                <KpiCard label="Revenue (mo)" value={formatUsd(t.revenue)} tone="gold" />
-                <KpiCard label="Expenses (mo)" value={formatUsd(t.expenses)} tone="rust" />
-                <KpiCard label="Net profit" value={formatUsd(t.profit)} tone="green" />
-                <KpiCard label="Margin" value={formatPct(t.margin)} tone="blue" />
-                <KpiCard label="Orders" value={t.orders.toLocaleString("en-US")} tone="plain" />
+                {treasury ? (
+                  <>
+                    <KpiCard
+                      label="Treasury balance"
+                      value={formatUsd(treasury.balance)}
+                      tone={treasury.negative ? "rust" : "green"}
+                    />
+                    <KpiCard label="Month net" value={formatUsd(treasury.monthNet)} tone="gold" />
+                    <KpiCard label="Week net" value={formatUsd(treasury.weekNet)} tone="blue" />
+                    <KpiCard label="All-time profit" value={formatUsd(treasury.allTimeProfit)} tone="plain" />
+                    <KpiCard label="Active missions" value={String(missions.length)} tone="plain" />
+                    <KpiCard
+                      label="Docs in progress"
+                      value={String(documents.filter((d) => d.status === "working").length)}
+                      tone="plain"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <KpiCard label="Revenue (mo)" value={formatUsd(t.revenue)} tone="gold" />
+                    <KpiCard label="Expenses (mo)" value={formatUsd(t.expenses)} tone="rust" />
+                    <KpiCard label="Net profit" value={formatUsd(t.profit)} tone="green" />
+                    <KpiCard label="Margin" value={formatPct(t.margin)} tone="blue" />
+                    <KpiCard label="Orders" value={t.orders.toLocaleString("en-US")} tone="plain" />
+                  </>
+                )}
               </div>
 
               <div className="dash-grid2">
@@ -166,6 +204,63 @@ export function CommandDashboard({ onClose }: Props) {
                 </section>
               </div>
             </>
+          )}
+
+          {tab === "tasks" && (
+            <section className="dash-card dash-card--full">
+              <h3 className="dash-card-title">Linear tasks</h3>
+              <LinearBoard />
+            </section>
+          )}
+
+          {tab === "missions" && (
+            <section className="dash-card dash-card--full">
+              <div className="dash-card-head-row">
+                <h3 className="dash-card-title">Countdown missions</h3>
+                <button type="button" className="tyche-btn tyche-btn--ghost" onClick={() => setMissionsOpen(true)}>
+                  Full overlay
+                </button>
+              </div>
+              {missions.length === 0 ? (
+                <p className="dash-empty">No active missions. Ask Zeus to add one.</p>
+              ) : (
+                <ul className="dash-feed">
+                  {missions.map((m) => (
+                    <li key={m.id} className="dash-feed-row">
+                      <div className="dash-feed-main">
+                        <div className="dash-feed-item">{m.title}</div>
+                        <div className="dash-feed-sub">{m.dueAt ? `Due ${new Date(m.dueAt).toLocaleDateString()}` : "No due date"}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          {tab === "documents" && (
+            <section className="dash-card dash-card--full">
+              <div className="dash-card-head-row">
+                <h3 className="dash-card-title">Scriptorium documents</h3>
+                <button type="button" className="tyche-btn tyche-btn--ghost" onClick={() => setDocumentsOpen(true)}>
+                  Open workspace
+                </button>
+              </div>
+              {documents.length === 0 ? (
+                <p className="dash-empty">No research documents yet. Ask Zeus to start research.</p>
+              ) : (
+                <ul className="dash-feed">
+                  {documents.slice(0, 12).map((d) => (
+                    <li key={d.id} className="dash-feed-row">
+                      <div className="dash-feed-main">
+                        <div className="dash-feed-item">{d.title}</div>
+                        <div className="dash-feed-sub">{d.status}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
 
           {tab === "businesses" && (
@@ -215,70 +310,50 @@ export function CommandDashboard({ onClose }: Props) {
             </section>
           )}
 
-          {tab === "etsy" && (
-            <div className="dash-grid2">
-              <section className="dash-card">
-                <h3 className="dash-card-title">Olympus Forge — Etsy</h3>
-                <div className="dash-kpis tight">
-                  <KpiCard label="Revenue" value={formatUsd(18420)} tone="gold" />
-                  <KpiCard label="Orders" value="612" tone="plain" />
-                  <KpiCard label="Conv. rate" value="3.8%" tone="blue" />
-                  <KpiCard label="Avg. order" value="$30" tone="green" />
-                </div>
-                <div className="dash-mini-rows">
-                  <MiniStat label="Shop favorites" value="2,481" />
-                  <MiniStat label="Listing views (mo)" value="16,120" />
-                  <MiniStat label="Repeat buyers" value="27%" />
-                  <MiniStat label="Avg. review" value="4.9 ★" />
-                </div>
-              </section>
-              <section className="dash-card">
-                <h3 className="dash-card-title">Recent orders</h3>
-                <ul className="dash-feed">
-                  {etsyOrders.map((o) => (
-                    <li key={o.id} className="dash-feed-row">
-                      <span className={`dash-dot ${o.status.toLowerCase()}`} />
-                      <div className="dash-feed-main">
-                        <div className="dash-feed-item">{o.item}</div>
-                        <div className="dash-feed-sub">
-                          {o.buyer.trim()} · {o.date} · {o.status}
-                        </div>
-                      </div>
-                      <div className="dash-feed-total">{formatUsd(o.total)}</div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-          )}
-
           {tab === "expenses" && (
             <div className="dash-grid2">
               <section className="dash-card">
-                <h3 className="dash-card-title">Expense breakdown (mo)</h3>
-                <ExpenseBars data={expenseBreakdown} />
+                <h3 className="dash-card-title">Treasury summary</h3>
+                {treasury ? (
+                  <div className="dash-kpis tight">
+                    <KpiCard label="Balance" value={formatUsd(treasury.balance)} tone={treasury.negative ? "rust" : "green"} />
+                    <KpiCard label="Total costs" value={formatUsd(treasury.totalCosts)} tone="rust" />
+                    <KpiCard label="Total credits" value={formatUsd(treasury.totalCredits)} tone="gold" />
+                    <KpiCard label="Month net" value={formatUsd(treasury.monthNet)} tone="blue" />
+                  </div>
+                ) : (
+                  <p className="dash-empty">Treasury offline — start the agent server.</p>
+                )}
               </section>
               <section className="dash-card">
-                <h3 className="dash-card-title">Where the drachmas go</h3>
-                <ul className="dash-feed">
-                  {expenseBreakdown.map((e) => {
-                    const total = expenseBreakdown.reduce((s, x) => s + x.amount, 0);
-                    return (
-                      <li key={e.label} className="dash-feed-row">
+                <h3 className="dash-card-title">Recent entries</h3>
+                {treasuryEntries.length === 0 ? (
+                  <p className="dash-empty">No treasury entries yet.</p>
+                ) : (
+                  <ul className="dash-feed">
+                    {treasuryEntries.slice(0, 20).map((e) => (
+                      <li key={e.id} className="dash-feed-row">
                         <div className="dash-feed-main">
                           <div className="dash-feed-item">{e.label}</div>
-                          <div className="dash-feed-sub">{formatPct(e.amount / total)} of spend</div>
+                          <div className="dash-feed-sub">
+                            {e.category} · {e.attributedGodId} · {e.source}
+                          </div>
                         </div>
-                        <div className="dash-feed-total">{formatUsd(e.amount)}</div>
+                        <div className={`dash-feed-total ${e.kind === "credit" ? "pos" : "neg"}`}>
+                          {e.kind === "credit" ? "+" : "-"}
+                          {formatUsd(e.amountUsd)}
+                        </div>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                )}
               </section>
             </div>
           )}
         </div>
       </div>
+      {missionsOpen && <MissionsOverlay onClose={() => setMissionsOpen(false)} />}
+      {documentsOpen && <DocumentWorkspace onClose={() => setDocumentsOpen(false)} />}
     </div>
   );
 }
@@ -296,15 +371,6 @@ function KpiCard({
     <div className={`dash-kpi tone-${tone}`}>
       <div className="dash-kpi-val">{value}</div>
       <div className="dash-kpi-label">{label}</div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="dash-mini">
-      <span className="dash-mini-label">{label}</span>
-      <span className="dash-mini-value">{value}</span>
     </div>
   );
 }
@@ -359,22 +425,5 @@ function RevExpBars({ data }: { data: BizRow[] }) {
         );
       })}
     </svg>
-  );
-}
-
-function ExpenseBars({ data }: { data: { label: string; amount: number }[] }) {
-  const max = Math.max(...data.map((d) => d.amount));
-  return (
-    <div className="dash-hbars">
-      {data.map((d) => (
-        <div key={d.label} className="dash-hbar-row">
-          <span className="dash-hbar-label">{d.label}</span>
-          <div className="dash-hbar-track">
-            <div className="dash-hbar-fill" style={{ width: `${(d.amount / max) * 100}%` }} />
-          </div>
-          <span className="dash-hbar-val">{formatUsd(d.amount)}</span>
-        </div>
-      ))}
-    </div>
   );
 }

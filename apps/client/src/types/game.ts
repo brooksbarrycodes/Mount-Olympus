@@ -78,16 +78,21 @@ export interface MissionItem {
   id: string;
   label: string;
   done: boolean;
+  dueAt?: string | null;
+  countdown?: string;
 }
 
 export interface HudState {
   drachmas: number;
-  /** Drachmas earned per hour (display only). */
+  /** Monthly net for mini ticker label. */
+  drachmasMonthNet: number;
+  drachmasWeekNet: number;
+  drachmasNegative: boolean;
+  /** Legacy field — unused. */
   drachmasRate: number;
   alerts: number;
   alliesOnline: number;
   missions: MissionItem[];
-  /** e.g. "Mount Olympus" or "Temple of Zeus". */
   locationLabel: string;
 }
 

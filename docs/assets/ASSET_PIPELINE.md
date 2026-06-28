@@ -60,7 +60,12 @@ sheets, load `characters/*.png` as spritesheets under the existing `TX.player` /
 ## Pixel-art rendering notes (Phaser)
 
 - `pixelArt: true` keeps textures crisp (nearest-neighbor scaling).
-- Camera follow uses smoothing; the followed target's position is rounded each
-  frame to avoid sub-pixel jitter and tile seams.
+- Tileset sheets and the interior marble floor use explicit `NEAREST` filtering
+  via `configurePixelArtTextures()` in `BootScene` (prevents GPU bleed at tile edges).
+- Camera follow uses smoothing with fractional zoom; `CameraSystem.update()` snaps
+  scroll to the world pixel grid at the current zoom to prevent tile seam lines.
+- The overworld has a solid grass-colored underfill rect beneath the tilemap so any
+  remaining 1px gap reads as ground instead of the canvas sky color.
 - Avoid enabling `roundPixels` globally — on recent Phaser it can reintroduce
-  jitter with zoomed camera-follow. We round the follow target instead.
+  jitter with zoomed camera-follow. Per-camera `setRoundPixels(true)` plus scroll
+  snap is the intended approach.

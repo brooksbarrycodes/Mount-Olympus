@@ -2,6 +2,41 @@ import type { OppDef, OppDialogData } from "@/types/game";
 import { locations } from "./world/olympusWorld";
 import { agentApi } from "@/net/agentApi";
 
+/** Map server session messages to the in-dialog chat thread. */
+export function sessionToChatMessages(
+  messages: { role: "user" | "assistant"; content: string }[],
+  greeting: string,
+): { from: "you" | "opp"; text: string }[] {
+  if (messages.length === 0) return [{ from: "opp", text: greeting }];
+  return messages.map((m) => ({
+    from: m.role === "user" ? ("you" as const) : ("opp" as const),
+    text: m.content,
+  }));
+}
+
+/** Send a Zeus message within a session and return the reply text (with error surfacing). */
+export async function resolveZeusReply(sessionId: number, message: string): Promise<string> {
+  try {
+    const res = await agentApi.zeusMessage(sessionId, message);
+    if (!res.reply?.trim()) {
+      return "Zeus returned an empty reply. Try again.";
+    }
+    if (res.provider === "mock") {
+      return (
+        `[Offline mock mode — set ADAPTER_MODE=real and ANTHROPIC_API_KEY in apps/server/.env, then restart.]\n\n` +
+        res.reply
+      );
+    }
+    return res.reply;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return (
+      `Couldn't reach Zeus (${msg}). ` +
+      `Make sure npm run dev is running and http://localhost:8787/health shows llmLive: true.`
+    );
+  }
+}
+
 /** Build the payload the React dialog needs from an Opp definition. */
 export function buildOppDialogData(def: OppDef): OppDialogData {
   const home = def.homeLocationId
@@ -25,11 +60,17 @@ export function buildOppDialogData(def: OppDef): OppDialogData {
 
 /**
  * Resolve an Opp's reply, preferring the live agent server (real reasoning for
- * Zeus, the Oracle, and Apollo) and gracefully falling back to the local mock
- * if the server is unreachable or the Opp has no backend agent. This is what
- * makes the gods "real" while keeping the game fully playable offline.
+ * Zeus, the Oracle, and Apollo). Zeus never falls back to stylized offline mock
+ * lines — errors and mock-mode are surfaced clearly instead.
  */
-export async function resolveReply(def: OppDef, message: string): Promise<string> {
+export async function resolveReply(def: OppDef, message: string, sessionId?: number): Promise<string> {
+  if (def.id === "zeus") {
+    if (sessionId === undefined) {
+      return "No active chat session. Close and reopen the dialog, or start a new chat.";
+    }
+    return resolveZeusReply(sessionId, message);
+  }
+
   try {
     const reply = await agentApi.replyFor(def.id, message);
     if (reply && reply.trim()) return reply;

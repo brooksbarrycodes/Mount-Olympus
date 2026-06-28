@@ -26,6 +26,14 @@ export interface GameEventMap {
   "game:location": { id: string; label: string };
   "game:opp-reply": { oppId: string; text: string };
   "game:ready": undefined;
+  /** Open the Tyche cross-venue trading floor monitor. */
+  "game:open-tyche-trading": undefined;
+  /** Open missions overlay. */
+  "game:open-missions": undefined;
+  /** Missions list changed — HUD should refresh. */
+  "game:missions-updated": undefined;
+  /** Open Scriptorium documents. */
+  "game:open-documents": undefined;
   /** Open the command desk business dashboard. */
   "game:open-dashboard": undefined;
   /** Open the oversight control center (approvals, autonomy, kill switch). */
@@ -39,6 +47,8 @@ export interface GameEventMap {
   "ui:enter-location": { locationId: string };
   "ui:hotbar": { action: HotbarAction };
   "ui:send-chat": { oppId: string; text: string };
+  /** Close the Tyche trading floor overlay. */
+  "ui:close-tyche-trading": undefined;
   /** Close the command desk dashboard (player stands up). */
   "ui:close-dashboard": undefined;
   /** Close the oversight control center. */

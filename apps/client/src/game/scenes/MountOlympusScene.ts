@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { bridge } from "../EventBridge";
 import { TX, TS, CLOUD_KEYS } from "../art/keys";
+import { palette as P } from "../art/palette";
 import {
   WORLD,
   PLAYER_SPAWN,
@@ -120,6 +121,13 @@ export class MountOlympusScene extends Phaser.Scene {
   /* --------------------------------------------------------------- terrain */
 
   private buildTerrain(): void {
+    // Solid grass underfill so any sub-pixel tile gap reads as ground, not sky.
+    const grassFill = Phaser.Display.Color.HexStringToColor(P.grass).color;
+    this.add
+      .rectangle(0, 0, WORLD.width, WORLD.height, grassFill)
+      .setOrigin(0, 0)
+      .setDepth(-101);
+
     const map = this.make.tilemap({
       tileWidth: WORLD.tile,
       tileHeight: WORLD.tile,
@@ -135,6 +143,9 @@ export class MountOlympusScene extends Phaser.Scene {
     const waterLayer = map.createBlankLayer("water", waterTs!, 0, 0);
     const rockyLayer = map.createBlankLayer("rocky", rockyTs!, 0, 0);
     const stairsLayer = map.createBlankLayer("stairs", stairsTs!, 0, 0);
+    for (const layer of [groundLayer, waterLayer, rockyLayer, stairsLayer]) {
+      layer?.setCullPadding(2);
+    }
     groundLayer?.setDepth(-100);
     waterLayer?.setDepth(-98);
     rockyLayer?.setDepth(-96);
@@ -497,7 +508,13 @@ export class MountOlympusScene extends Phaser.Scene {
       if (!def) return;
       resolveReply(def, text)
         .then((reply) => bridge.emit("game:opp-reply", { oppId, text: reply }))
-        .catch(() => bridge.emit("game:opp-reply", { oppId, text: generateReply(def, text) }));
+        .catch((err) => {
+          const fallback =
+            def.id === "zeus"
+              ? `Couldn't reach Zeus (${err instanceof Error ? err.message : String(err)}).`
+              : generateReply(def, text);
+          bridge.emit("game:opp-reply", { oppId, text: fallback });
+        });
     };
     const onTalk = ({ oppId }: { oppId: string }) => {
       const def = getOpp(oppId);
@@ -530,15 +547,14 @@ export class MountOlympusScene extends Phaser.Scene {
     bridge.emit("game:ready", undefined);
     bridge.emit("game:location", { id: "overworld", label: "Mount Olympus" });
     bridge.emit("game:hud", {
-      drachmas: 12480,
-      drachmasRate: 34,
+      drachmas: 0,
+      drachmasMonthNet: 0,
+      drachmasWeekNet: 0,
+      drachmasNegative: false,
+      drachmasRate: 0,
       alerts: 2,
       alliesOnline: this.opps.length,
-      missions: [
-        { id: "pantheon", label: "Raise the Pantheon", done: true },
-        { id: "zeus", label: "Meet Zeus at his Temple", done: false },
-        { id: "temple", label: "Inspect the Temple of Zeus", done: false },
-      ],
+      missions: [],
       locationLabel: "Mount Olympus",
     });
     bridge.emit(

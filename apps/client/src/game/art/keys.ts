@@ -55,6 +55,7 @@ export const TX = {
   headquarters: "tx-headquarters",
   pantheon: "tx-pantheon",
   templeZeus: "tx-temple-zeus",
+  templeTyche: "tx-temple-tyche",
   templePlot: "tx-temple-plot",
 
   // Ground overlays (AI-generated painterly mosaics / patches)
@@ -78,6 +79,7 @@ export const TX = {
   demeter: "tx-demeter",
   apollo: "tx-apollo",
   oracle: "tx-oracle",
+  tyche: "tx-tyche",
 
   // Effects / UI (procedural)
   shadow: "tx-shadow",
@@ -142,6 +144,7 @@ export const IMAGE_ASSETS: Record<string, string> = {
   [TX.headquarters]: "assets/props/hq.png",
   [TX.pantheon]: "assets/props/pantheon.png",
   [TX.templeZeus]: "assets/props/temple_zeus.png",
+  [TX.templeTyche]: "assets/props/temple_zeus.png",
   [TX.floorPantheon]: "assets/ground/pantheon_floor.png",
   [TX.floorTemple]: "assets/ground/temple_floor.png",
   [TX.floorAgora]: "assets/ground/agora_floor.png",

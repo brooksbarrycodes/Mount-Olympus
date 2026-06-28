@@ -17,7 +17,26 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body ?? {}),
   });
-  if (!res.ok) throw new Error(`POST ${path} -> ${res.status}`);
+  if (!res.ok) {
+    let msg = `POST ${path} -> ${res.status}`;
+    try {
+      const err = (await res.json()) as { error?: string };
+      if (err.error) msg = err.error;
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()) as T;
+}
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) throw new Error(`PATCH ${path} -> ${res.status}`);
   return (await res.json()) as T;
 }
 
@@ -105,11 +124,175 @@ export interface Prediction {
   score: number | null;
 }
 
+export interface ZeusMessageResponse {
+  reply: string;
+  toolsUsed: string[];
+  costUsd: number;
+  provider: "mock" | "anthropic";
+  llmLive: boolean;
+  sessionId?: number;
+}
+
+export interface ZeusSessionSummary {
+  id: number;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  preview: string | null;
+}
+
+export interface ZeusSessionDetail extends ZeusSessionSummary {
+  messages: { role: "user" | "assistant"; content: string; createdAt: string }[];
+}
+
+export interface TycheTradeLeg {
+  venue: string;
+  marketId: string;
+  side: "yes" | "no";
+  price: number;
+  quantity: number;
+  orderId: string | null;
+  status: string;
+}
+
+export interface TycheTradeBundle {
+  id?: number;
+  status: "pending" | "success" | "failed";
+  strategy: string;
+  eventName: string;
+  sport: string;
+  lockedProfitUsd: number;
+  actualPnlUsd: number | null;
+  failureReason: string | null;
+  legs: TycheTradeLeg[];
+  createdAt?: string;
+}
+
+export interface TycheOpportunity {
+  eventName: string;
+  sport: string;
+  strategyTag: string;
+  netEdge: number;
+  worstCaseRoi: number;
+  maxSize: number;
+  shouldExecute: boolean;
+}
+
+export interface TycheStatus {
+  mode: string;
+  strategy: string;
+  autoExecution: boolean;
+  paused: boolean;
+  lastScanAt: string | null;
+  opportunities: TycheOpportunity[];
+  todayPnlUsd: number;
+  balances: {
+    kalshi: { availableUsd: number; totalUsd: number };
+    prophetx: { availableUsd: number; totalUsd: number };
+    freeUsd: number;
+    deployedUsd: number;
+  } | null;
+  venueHealth: {
+    kalshi: { connected: boolean; message: string; mode: string };
+    prophetx: { connected: boolean; message: string; status: string };
+  } | null;
+}
+
+export interface TreasurySummary {
+  balance: number;
+  totalCosts: number;
+  totalCredits: number;
+  weekNet: number;
+  monthNet: number;
+  allTimeProfit: number;
+  negative: boolean;
+}
+
+export interface TreasuryEntry {
+  id: number;
+  kind: "cost" | "credit";
+  label: string;
+  amountUsd: number;
+  category: string;
+  attributedGodId: string;
+  source: string;
+  reference: string | null;
+  createdAt: string;
+}
+
+export interface Mission {
+  id: number;
+  title: string;
+  description: string;
+  dueAt: string | null;
+  completedAt: string | null;
+  createdBy: string;
+  linearIssueId: string | null;
+  priority: number;
+  createdAt: string;
+}
+
+export interface DocumentRecord {
+  id: number;
+  title: string;
+  kind: string;
+  status: string;
+  contentMd: string;
+  summary: string;
+  requestedBy: string;
+  agent: string;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface LinearIssue {
+  id: string;
+  identifier: string;
+  title: string;
+  description: string;
+  state: string;
+  priority: number;
+  dueDate: string | null;
+  url: string;
+  assignee: string | null;
+}
+
 export const agentApi = {
   base: BASE,
 
-  zeusMessage: (message: string) =>
-    post<{ reply: string; toolsUsed: string[]; costUsd: number }>("/zeus/message", { message }),
+  zeusSessions: () => get<{ sessions: ZeusSessionSummary[] }>("/zeus/sessions"),
+
+  zeusNewSession: () => post<{ session: ZeusSessionSummary }>("/zeus/sessions", {}),
+
+  zeusSession: (id: number) => get<{ session: ZeusSessionDetail }>(`/zeus/sessions/${id}`),
+
+  zeusMessage: (sessionId: number, message: string) =>
+    post<ZeusMessageResponse>("/zeus/message", { sessionId, message }),
+
+  zeusOpening: (sessionId: number) =>
+    post<{ text: string; sessionId: number }>("/zeus/opening", { sessionId }),
+
+  async zeusTts(text: string): Promise<Blob> {
+    const res = await fetch(`${BASE}/zeus/tts`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      let msg = `POST /zeus/tts -> ${res.status}`;
+      try {
+        const err = (await res.json()) as { error?: string };
+        if (err.error) msg = err.error;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg);
+    }
+    const buf = await res.arrayBuffer();
+    const mime = res.headers.get("content-type")?.split(";")[0]?.trim() || "audio/mpeg";
+    return new Blob([buf], { type: mime });
+  },
 
   oracleAnalyze: (question: string) =>
     post<{ report: string; toolsUsed: string[]; costUsd: number }>("/oracle/analyze", { question }),
@@ -145,9 +328,65 @@ export const agentApi = {
   setAutonomy: (actionType: string, level: number) =>
     post<{ ok: boolean }>("/autonomy", { actionType, level }),
 
+  async oracleTts(text: string): Promise<Blob> {
+    const res = await fetch(`${BASE}/oracle/tts`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error(`POST /oracle/tts -> ${res.status}`);
+    return res.blob();
+  },
+
+  treasurySummary: () => get<TreasurySummary>("/treasury/summary"),
+  treasuryEntries: (opts?: { since?: string; god?: string }) => {
+    const q = new URLSearchParams();
+    if (opts?.since) q.set("since", opts.since);
+    if (opts?.god) q.set("god", opts.god);
+    const qs = q.toString();
+    return get<{ entries: TreasuryEntry[] }>(`/treasury/entries${qs ? `?${qs}` : ""}`);
+  },
+
+  missions: () => get<{ missions: Mission[] }>("/missions"),
+  createMission: (body: { title: string; description?: string; dueInDays?: number; dueInHours?: number }) =>
+    post<{ ok: boolean; mission: Mission }>("/missions", body),
+  completeMission: (id: number) => patch<{ ok: boolean; mission: Mission }>(`/missions/${id}`, {}),
+
+  documents: () => get<{ documents: DocumentRecord[] }>("/documents"),
+  document: (id: number) => get<{ document: DocumentRecord }>(`/documents/${id}`),
+  startResearch: (topic: string, kind?: string) =>
+    post<{ ok: boolean; document: DocumentRecord }>("/documents/research", { topic, kind }),
+
+  linearStatus: () => get<{ configured: boolean }>("/linear/status"),
+  linearIssues: (team?: string) =>
+    get<{ issues: LinearIssue[] }>(`/linear/issues${team ? `?team=${team}` : ""}`),
+  linearCreateIssue: (body: { title: string; description?: string; priority?: number; dueDate?: string }) =>
+    post<{ ok: boolean; issue: LinearIssue }>("/linear/issues", body),
+  linearCompleteIssue: (id: string) => post<{ ok: boolean; issue: LinearIssue }>(`/linear/issues/${id}/complete`, {}),
+
+  tycheStatus: () => get<TycheStatus>("/tyche/status"),
+  tycheTrades: () => get<{ trades: TycheTradeBundle[] }>("/tyche/trades"),
+  tychePause: (paused: boolean) => post<{ ok: boolean }>("/tyche/pause", { paused }),
+  tycheStrategy: (strategy: string) => post<{ ok: boolean }>("/tyche/strategy", { strategy }),
+
+  tycheStream(onTrade: (trade: TycheTradeBundle) => void): { close: () => void } {
+    const es = new EventSource(`${BASE}/tyche/stream`);
+    es.addEventListener("trade", (ev) => {
+      try {
+        onTrade(JSON.parse((ev as MessageEvent).data) as TycheTradeBundle);
+      } catch {
+        /* ignore malformed */
+      }
+    });
+    return { close: () => es.close() };
+  },
+
   /** Route a chat message to the right agent. Returns null if the opp has no backend agent. */
-  async replyFor(oppId: string, text: string): Promise<string | null> {
-    if (oppId === "zeus") return (await this.zeusMessage(text)).reply;
+  async replyFor(oppId: string, text: string, sessionId?: number): Promise<string | null> {
+    if (oppId === "zeus") {
+      if (sessionId === undefined) return null;
+      return (await this.zeusMessage(sessionId, text)).reply;
+    }
     if (oppId === "oracle") return (await this.oracleAnalyze(text)).report;
     if (oppId === "apollo") return (await this.produce()).result;
     return null;

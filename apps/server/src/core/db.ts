@@ -94,6 +94,25 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS chat_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT 'New chat',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, id);
 `);
 
 export function nowIso(): string {
@@ -153,10 +172,10 @@ const SEED: SeedBiz[] = [
     godId: "hephaestus",
     god: "Hephaestus",
     platform: "Etsy",
-    revenue: 18420,
-    expenses: 9870,
-    orders: 612,
-    revenueSeries: [9200, 10100, 11800, 10950, 12400, 13980, 14210, 15600, 16040, 16880, 17510, 18420],
+    revenue: 0,
+    expenses: 0,
+    orders: 0,
+    revenueSeries: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     monthlyBudget: 4000,
   },
   {
@@ -165,10 +184,10 @@ const SEED: SeedBiz[] = [
     godId: "athena",
     god: "Athena",
     platform: "Shopify",
-    revenue: 12260,
-    expenses: 4130,
-    orders: 318,
-    revenueSeries: [3100, 4200, 5400, 6100, 7300, 8200, 8900, 9600, 10400, 11050, 11720, 12260],
+    revenue: 0,
+    expenses: 0,
+    orders: 0,
+    revenueSeries: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     monthlyBudget: 3000,
   },
   {
@@ -177,10 +196,10 @@ const SEED: SeedBiz[] = [
     godId: "hermes",
     god: "Hermes",
     platform: "Shopify",
-    revenue: 15870,
-    expenses: 11240,
-    orders: 904,
-    revenueSeries: [12100, 13050, 12780, 14010, 13560, 14890, 15230, 14780, 15400, 15110, 15620, 15870],
+    revenue: 0,
+    expenses: 0,
+    orders: 0,
+    revenueSeries: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     monthlyBudget: 6000,
   },
 ];

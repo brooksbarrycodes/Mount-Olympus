@@ -7,6 +7,11 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
+    "smoke:zeus": "tsx scripts/smoke-zeus.ts",
+    "smoke:tyche": "tsx scripts/smoke-tyche.ts",
+    "smoke:treasury": "tsx scripts/smoke-treasury.ts",
+    "test:tyche": "tsx --test src/tyche/tyche.test.ts",
+    "test:treasury": "tsx --test src/treasury/treasury.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

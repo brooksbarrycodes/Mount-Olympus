@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../../config.ts";
 import { kvGet, kvSet } from "../db.ts";
+import { recordCost } from "../../treasury/ledger.ts";
 import type { Llm, LlmCompleteOptions, LlmResponse, LlmTier, LlmToolCall } from "./types.ts";
 
 /**
@@ -116,6 +117,15 @@ export class AnthropicLlm implements Llm {
     const outTok = resp.usage.output_tokens;
     const costUsd = (inTok / 1e6) * price.in + (outTok / 1e6) * price.out;
     addLlmSpend(costUsd);
+    const agentName = (opts.meta as { agent?: string } | undefined)?.agent ?? "zeus";
+    recordCost({
+      label: `Anthropic API (${tier})`,
+      amountUsd: costUsd,
+      category: "api",
+      attributedGodId: agentName,
+      source: "auto",
+      reference: `llm:${agentName}`,
+    });
 
     return {
       text,

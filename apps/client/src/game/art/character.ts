@@ -115,6 +115,17 @@ export const GOD_COLORS: Record<string, CharColors> = {
     bearded: false,
     aura: "rgba(170,140,255,0.22)",
   },
+  tyche: {
+    cloak: "#2a9d8f",
+    cloakShade: "#1f7369",
+    skin: P.skin,
+    skinShade: P.skinShade,
+    hair: "#e8c962",
+    hairShade: "#c79f3e",
+    trim: P.gold,
+    bearded: false,
+    aura: "rgba(42,157,143,0.2)",
+  },
 };
 
 /** Look up the color set for an Opp id (defaults to a Zeus-like divine set). */

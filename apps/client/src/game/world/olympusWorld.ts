@@ -80,11 +80,21 @@ export const locations: LocationDef[] = [
     description: "Zeus's sanctuary. Speak with the overseer and read his decrees.",
     doorOffsetY: 24,
   },
+  {
+    id: "temple-tyche",
+    name: "Temple of Tyche",
+    textureKey: TX.templeTyche,
+    x: 2900,
+    y: 1180,
+    scale: 0.36,
+    enterable: true,
+    description: "Fortune's shrine and the cross-venue arb trading desk.",
+    doorOffsetY: 24,
+  },
 ];
 
 /** Empty buildable plots advertising future growth (reserved god-regions). */
 export const templePlots: Array<{ x: number; y: number }> = [
-  { x: 2900, y: 760 },
   { x: 3120, y: 1180 },
   { x: 2820, y: 1560 },
   { x: 760, y: 1760 },

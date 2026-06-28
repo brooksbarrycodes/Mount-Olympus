@@ -25,7 +25,7 @@ interface Seat {
 }
 
 /** What the player is currently doing while seated (drives which overlay closes). */
-type SeatMode = "none" | "gathering" | "meeting" | "desk";
+type SeatMode = "none" | "gathering" | "meeting" | "desk" | "trading";
 
 /**
  * A bounded interior room you walk around in. The Pantheon is a bespoke command
@@ -664,6 +664,24 @@ export class InteriorScene extends Phaser.Scene {
         getPos: () => ({ x: this.def.desk!.x, y: this.def.desk!.y + 30 }),
       });
     }
+    if (this.def.tradingDesk) {
+      list.push({
+        kind: "enter",
+        refId: "trading-desk",
+        label: "Open trading floor monitor",
+        range: 54,
+        getPos: () => ({ x: this.def.tradingDesk!.x, y: this.def.tradingDesk!.y + 20 }),
+      });
+    }
+    if (this.def.scriptorium) {
+      list.push({
+        kind: "enter",
+        refId: "scriptorium",
+        label: "Open the Scriptorium",
+        range: 52,
+        getPos: () => this.def.scriptorium!,
+      });
+    }
 
     return list;
   }
@@ -691,6 +709,8 @@ export class InteriorScene extends Phaser.Scene {
     if (target.kind === "enter") {
       if (target.refId === "table-head") this.beginMeeting();
       else if (target.refId === "command-desk") this.sitAtDesk();
+      else if (target.refId === "trading-desk") this.sitAtTradingDesk();
+      else if (target.refId === "scriptorium") bridge.emit("game:open-documents", undefined);
     }
   }
 
@@ -709,6 +729,14 @@ export class InteriorScene extends Phaser.Scene {
     this.player.snapTo(this.def.desk.x, this.def.desk.y + 30, "up");
     this.inputSystem.setEnabled(false);
     bridge.emit("game:open-dashboard", undefined);
+  }
+
+  private sitAtTradingDesk(): void {
+    if (this.seatMode !== "none" || !this.def.tradingDesk) return;
+    this.seatMode = "trading";
+    this.player.snapTo(this.def.tradingDesk.x, this.def.tradingDesk.y + 20, "up");
+    this.inputSystem.setEnabled(false);
+    bridge.emit("game:open-tyche-trading", undefined);
   }
 
   private endSeated(): void {
@@ -745,7 +773,13 @@ export class InteriorScene extends Phaser.Scene {
       if (!def) return;
       resolveReply(def, text)
         .then((reply) => bridge.emit("game:opp-reply", { oppId, text: reply }))
-        .catch(() => bridge.emit("game:opp-reply", { oppId, text: generateReply(def, text) }));
+        .catch((err) => {
+          const fallback =
+            def.id === "zeus"
+              ? `Couldn't reach Zeus (${err instanceof Error ? err.message : String(err)}).`
+              : generateReply(def, text);
+          bridge.emit("game:opp-reply", { oppId, text: fallback });
+        });
     };
     const onTalk = ({ oppId }: { oppId: string }) => {
       const def = getOpp(oppId);
@@ -761,12 +795,14 @@ export class InteriorScene extends Phaser.Scene {
     bridge.on("ui:send-chat", onChat);
     bridge.on("ui:talk", onTalk);
     bridge.on("ui:close-dashboard", onCloseDash);
+    bridge.on("ui:close-tyche-trading", onCloseDash);
     bridge.on("ui:end-meeting", onEndMeeting);
     this.handlers.push(
       () => bridge.off("ui:close-dialog", onClose),
       () => bridge.off("ui:send-chat", onChat),
       () => bridge.off("ui:talk", onTalk),
       () => bridge.off("ui:close-dashboard", onCloseDash),
+      () => bridge.off("ui:close-tyche-trading", onCloseDash),
       () => bridge.off("ui:end-meeting", onEndMeeting),
     );
   }

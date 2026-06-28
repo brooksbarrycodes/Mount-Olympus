@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { loadWorldImages, generateProcedural, registerAnimations } from "../art/textures";
+import { loadWorldImages, generateProcedural, registerAnimations, configurePixelArtTextures } from "../art/textures";
 
 /**
  * Loads real pixel-art world assets, then generates the procedural characters +
@@ -17,6 +17,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     generateProcedural(this);
+    configurePixelArtTextures(this);
     registerAnimations(this);
     this.scene.start("MountOlympusScene");
   }

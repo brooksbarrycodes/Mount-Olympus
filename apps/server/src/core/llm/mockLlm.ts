@@ -83,14 +83,12 @@ function finalText(agent: string | undefined, messages: LlmMessage[]): string {
     const profit = led?.totals?.profit ?? 0;
     const margin = led?.totals?.margin ?? 0;
     return (
-      `I have weighed your words, Archon. Across our ventures the treasury shows ` +
-      `${profit >= 0 ? "a profit" : "a shortfall"} of $${Math.abs(Math.round(profit)).toLocaleString()} ` +
-      `at a ${(margin * 100).toFixed(0)}% margin.\n\n` +
-      `On "${ask.slice(0, 120)}": the wise first move is to commission the Oracle to divine a ` +
-      `rising, low-competition niche, then loose Apollo upon it to forge listings under my seal. ` +
-      `Nothing is published without your blessing, and no drachma is spent past the cap I keep. ` +
-      `Summon the Oracle, and I shall command the rest.\n\n` +
-      `(Mock council voice -- add an Anthropic key on Day 2 and I reason for real.)`
+      `Here's where we stand: ${profit >= 0 ? "profit" : "loss"} of ` +
+      `$${Math.abs(Math.round(profit)).toLocaleString()} at a ${(margin * 100).toFixed(0)}% margin.\n\n` +
+      `On "${ask.slice(0, 120)}": I'd pull fresh ledger data before committing, but the usual playbook is ` +
+      `have the Oracle research a rising niche, then have Apollo draft listings for your approval. ` +
+      `Nothing publishes without your sign-off, and we stay within the daily spend cap.\n\n` +
+      `(Offline mock mode — set ADAPTER_MODE=real and an Anthropic key for live reasoning.)`
     );
   }
 
