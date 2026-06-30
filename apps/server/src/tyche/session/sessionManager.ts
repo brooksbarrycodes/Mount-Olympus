@@ -80,13 +80,14 @@ export async function startSandboxSession(): Promise<{ ok: boolean; error?: stri
     return { ok: false, error: preflight.reasons.join("; ") };
   }
 
+  const sessionMode = preflight.sessionMode;
   const startedAt = new Date().toISOString();
   const endsAt = new Date(Date.now() + config.tyche.sessionMaxDurationMs).toISOString();
   const strategy = getRuntimeStrategy();
 
   const sessionId = createSessionRow({
     status: "running",
-    mode: "sandbox",
+    mode: sessionMode,
     strategy,
     startedAt,
     endsAt,
@@ -98,7 +99,7 @@ export async function startSandboxSession(): Promise<{ ok: boolean; error?: stri
     configSnapshot: configSnapshot(),
   });
 
-  setRuntimeMode("sandbox");
+  setRuntimeMode(sessionMode);
   setRuntimeStrategy(strategy);
   setSessionScanEnabled(true);
   setTychePaused(false);

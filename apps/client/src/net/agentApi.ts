@@ -9,7 +9,7 @@
 
 const BASE =
   (import.meta.env.VITE_AGENT_API as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:8787";
+  (import.meta.env.PROD ? "/api" : "http://localhost:8787");
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -240,6 +240,7 @@ export interface TycheSessionStatus {
 
 export interface TychePreflight {
   ready: boolean;
+  sessionMode?: "observe" | "paper" | "sandbox" | "live";
   reasons: string[];
   kalshiMarkets: number;
   prophetxMarkets: number;

@@ -1,4 +1,5 @@
 import { config } from "../config.ts";
+import { isVercelRuntime } from "../env.ts";
 import type { Opportunity } from "./models/opportunity.ts";
 import type { TradeBundle } from "./models/tradeBundle.ts";
 import type { DualBalances } from "./models/venueBalances.ts";
@@ -28,6 +29,9 @@ import {
 } from "./runtimeContext.ts";
 import { getSessionStatus } from "./session/sessionManager.ts";
 import type { TycheMode, TycheStrategy } from "../config.ts";
+
+// Module-level status reads session rows; schema must exist before first query.
+initTycheSchema();
 
 function designModeBalances(): DualBalances {
   return computeDualBalances(sandboxVenueBalance(), sandboxVenueBalance());
@@ -67,6 +71,27 @@ let status: TycheStatus = {
 };
 
 let loopTimer: ReturnType<typeof setInterval> | null = null;
+let scanInFlight: Promise<void> | null = null;
+let lastServerlessScanAt = 0;
+
+/** On Vercel there is no background loop — poll /tyche/status to drive scans. */
+export async function maybeScanForServerless(): Promise<void> {
+  if (!isVercelRuntime()) return;
+  const scanEnabled = config.tyche.autoScan || isSessionScanEnabled();
+  if (!scanEnabled) return;
+
+  const now = Date.now();
+  if (now - lastServerlessScanAt < config.tyche.scanIntervalMs) return;
+  if (scanInFlight) return scanInFlight;
+
+  lastServerlessScanAt = now;
+  scanInFlight = runScan()
+    .catch((err) => console.warn("Tyche serverless scan failed:", err))
+    .finally(() => {
+      scanInFlight = null;
+    });
+  return scanInFlight;
+}
 
 export function getTycheStatus(): TycheStatus {
   return {
@@ -198,9 +223,11 @@ export function startTycheLoop(): void {
 
   void runScan().catch((err) => console.warn("Tyche initial scan failed:", err));
 
-  loopTimer = setInterval(() => {
-    void runScan().catch((err) => console.warn("Tyche scan failed:", err));
-  }, config.tyche.scanIntervalMs);
+  if (!isVercelRuntime()) {
+    loopTimer = setInterval(() => {
+      void runScan().catch((err) => console.warn("Tyche scan failed:", err));
+    }, config.tyche.scanIntervalMs);
+  }
 }
 
 export function stopTycheLoop(): void {

@@ -30,6 +30,7 @@ export function TycheTradingFloor({ onClose }: Props) {
 
   useEffect(() => {
     void refresh();
+    const poll = setInterval(() => void refresh(), 12_000);
     const es = agentApi.tycheStream({
       onTrade: (trade) => {
         setTrades((prev) => {
@@ -40,7 +41,10 @@ export function TycheTradingFloor({ onClose }: Props) {
       },
       onStatus: (s) => setStatus(s),
     });
-    return () => es.close();
+    return () => {
+      clearInterval(poll);
+      es.close();
+    };
   }, [refresh]);
 
   useEffect(() => {

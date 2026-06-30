@@ -2,9 +2,11 @@ import Database from "better-sqlite3";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { isVercelRuntime } from "../env.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(here, "..", "..", "data");
+const dataDir = isVercelRuntime() ? tmpdir() : join(here, "..", "..", "data");
 mkdirSync(dataDir, { recursive: true });
 
 export const db = new Database(join(dataDir, "olympus.db"));

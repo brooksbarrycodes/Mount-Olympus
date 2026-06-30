@@ -153,7 +153,7 @@ export async function executeOpportunity(opp: Opportunity, mode: TycheMode): Pro
   }
 
   const notional = opp.bundleCost * opp.maxSize;
-  if (mode === "sandbox") {
+  if (mode === "sandbox" || mode === "paper") {
     const sessionGate = sessionAllowsExecution(notional);
     if (!sessionGate.allowed) {
       return { executed: false, reason: sessionGate.reason ?? "session blocked" };
@@ -200,7 +200,7 @@ export async function executeOpportunity(opp: Opportunity, mode: TycheMode): Pro
   };
   emitTradeEvent(tradeId, bundle);
 
-  if (mode === "sandbox") {
+  if (mode === "sandbox" || mode === "paper") {
     recordSessionOrder(finalStatus === "success", notional);
   }
 

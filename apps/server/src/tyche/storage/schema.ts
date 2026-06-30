@@ -110,12 +110,8 @@ export function initTycheSchema(): void {
 }
 
 export function seedTycheBusiness(): void {
-  const exists = db.prepare("SELECT id FROM businesses WHERE id = ?").get("tyche-arb") as
-    | { id: string }
-    | undefined;
-  if (exists) return;
   db.prepare(`
-    INSERT INTO businesses
+    INSERT OR IGNORE INTO businesses
       (id, name, god_id, god, platform, niche, monthly_budget, base_revenue, base_expenses, base_orders, revenue_series, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(

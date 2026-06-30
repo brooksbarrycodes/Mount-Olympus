@@ -7,6 +7,7 @@ import {
   setRuntimeStrategy,
   startTycheLoop,
   stopTycheLoop,
+  maybeScanForServerless,
 } from "./tycheLoop.ts";
 import {
   listTrades,
@@ -34,6 +35,7 @@ export function registerTycheRoutes(app: FastifyInstance): void {
   initTycheSchema();
 
   app.get("/tyche/health", async () => {
+    await maybeScanForServerless();
     const s = getTycheStatus();
     return {
       ok: true,
@@ -44,7 +46,10 @@ export function registerTycheRoutes(app: FastifyInstance): void {
     };
   });
 
-  app.get("/tyche/preflight", async () => runPreflight());
+  app.get("/tyche/preflight", async () => {
+    await maybeScanForServerless();
+    return runPreflight();
+  });
 
   app.get("/tyche/session", async () => ({
     ...getSessionStatus(),
@@ -77,6 +82,7 @@ export function registerTycheRoutes(app: FastifyInstance): void {
   });
 
   app.get("/tyche/status", async () => {
+    await maybeScanForServerless();
     const s = getTycheStatus();
     return {
       ...s,

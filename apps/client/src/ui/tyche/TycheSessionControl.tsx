@@ -40,6 +40,8 @@ export function TycheSessionControl({ session, busy, onRefresh }: Props) {
 
   const active = session?.active ?? false;
   const ready = preflight?.ready ?? false;
+  const sessionMode = preflight?.sessionMode ?? "sandbox";
+  const isPaper = sessionMode === "paper";
 
   const start = async () => {
     setError(null);
@@ -69,7 +71,9 @@ export function TycheSessionControl({ session, busy, onRefresh }: Props) {
   return (
     <section className="tyche-desk-session">
       <div className="tyche-desk-session-head">
-        <span className="tyche-desk-pill tyche-desk-pill--sandbox">Sandbox — test funds</span>
+        <span className={`tyche-desk-pill ${isPaper ? "tyche-desk-pill--warn" : "tyche-desk-pill--sandbox"}`}>
+          {isPaper ? "Paper — mock books" : "Sandbox — test funds"}
+        </span>
         {active && (
           <span className="tyche-desk-session-countdown">
             {fmtCountdown(session?.remainingMs)} remaining
@@ -115,7 +119,7 @@ export function TycheSessionControl({ session, busy, onRefresh }: Props) {
             disabled={busy || !ready}
             onClick={() => void start()}
           >
-            START SANDBOX SESSION
+            START {isPaper ? "PAPER" : "SANDBOX"} SESSION
           </button>
         ) : (
           <button
