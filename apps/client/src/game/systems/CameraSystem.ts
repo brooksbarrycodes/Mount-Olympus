@@ -13,8 +13,9 @@ import Phaser from "phaser";
 export class CameraSystem {
   private readonly cam: Phaser.Cameras.Scene2D.Camera;
   private readonly scene: Phaser.Scene;
-  private readonly worldW: number;
-  private readonly worldH: number;
+  private readonly zoomFillW: number;
+  private readonly zoomFillH: number;
+  private readonly scrollClamp?: { minY?: number; maxY?: number };
   private targetZoom: number;
   private minZoom = 0.32;
   private readonly maxZoom = 4.5;
@@ -25,18 +26,21 @@ export class CameraSystem {
     follow: Phaser.GameObjects.GameObject,
     worldW: number,
     worldH: number,
+    initialZoom = 2.6,
+    scrollClamp?: { minY?: number; maxY?: number },
+    zoomFill?: { w: number; h: number },
   ) {
     this.scene = scene;
-    this.worldW = worldW;
-    this.worldH = worldH;
+    this.zoomFillW = zoomFill?.w ?? worldW;
+    this.zoomFillH = zoomFill?.h ?? worldH;
+    this.scrollClamp = scrollClamp;
     this.cam = scene.cameras.main;
     this.cam.setBounds(0, 0, worldW, worldH);
     this.cam.setRoundPixels(true);
     this.cam.startFollow(follow, true, 0.12, 0.12);
 
     this.recomputeMinZoom();
-    // start a bit closer than the world-map view, clamped to the valid range
-    this.targetZoom = Phaser.Math.Clamp(2.6, this.minZoom, this.maxZoom);
+    this.targetZoom = Phaser.Math.Clamp(initialZoom, this.minZoom, this.maxZoom);
     this.cam.setZoom(this.targetZoom);
 
     scene.input.on(
@@ -70,7 +74,7 @@ export class CameraSystem {
   private recomputeMinZoom(): void {
     const vw = this.scene.scale.gameSize.width || this.cam.width;
     const vh = this.scene.scale.gameSize.height || this.cam.height;
-    const fill = Math.max(vw / this.worldW, vh / this.worldH);
+    const fill = Math.max(vw / this.zoomFillW, vh / this.zoomFillH);
     // tiny epsilon so rounding never leaves a 1px sky sliver
     this.minZoom = Math.min(this.maxZoom, fill + 0.001);
     if (this.targetZoom < this.minZoom) this.targetZoom = this.minZoom;
@@ -83,7 +87,20 @@ export class CameraSystem {
       // snappier follow so zoom tracks the scroll wheel instead of drifting
       this.cam.setZoom(Phaser.Math.Linear(z, this.targetZoom, 0.22));
     }
+    this.applyScrollClamp();
     this.snapScrollToPixelGrid();
+  }
+
+  /** Prevent camera from revealing non-playable zones (e.g. Tyche ceiling band). */
+  private applyScrollClamp(): void {
+    if (!this.scrollClamp) return;
+    const halfH = this.cam.height / this.cam.zoom / 2;
+    if (this.scrollClamp.minY != null) {
+      this.cam.scrollY = Math.max(this.cam.scrollY, this.scrollClamp.minY + halfH);
+    }
+    if (this.scrollClamp.maxY != null) {
+      this.cam.scrollY = Math.min(this.cam.scrollY, this.scrollClamp.maxY - halfH);
+    }
   }
 
   /** Align scroll to the world pixel grid at the current zoom (prevents tile seams). */

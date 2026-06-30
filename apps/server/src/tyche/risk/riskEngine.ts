@@ -8,6 +8,9 @@ import { dualBalanceGate } from "../pricing/capitalManager.ts";
 import { prophetxIsConfigured } from "../../config.ts";
 import { dailyNotionalUsd, countLegFailuresToday, todayPnlUsd } from "../storage/repositories.ts";
 import { insertRiskDecision } from "../storage/repositories.ts";
+import { evaluateExposure } from "./exposure.ts";
+import { getRuntimeBookAgeMs } from "../learning/sessionReview.ts";
+import { sessionAllowsExecution } from "../session/sessionManager.ts";
 
 export interface RiskDecision {
   allowed: boolean;
@@ -30,8 +33,8 @@ export function evaluateRisk(
   if (!config.tyche.autoExecution) reasons.push("auto-execution disabled");
   if (opp.matchConfidence !== "EXACT_MATCH") reasons.push("not EXACT_MATCH");
   if (!opp.shouldExecute) reasons.push(...opp.rejectionReasons);
-  if (!bookIsFresh(kalshiFetchedAt)) reasons.push("stale Kalshi book");
-  if (!bookIsFresh(pxFetchedAt)) reasons.push("stale ProphetX book");
+  if (!bookIsFresh(kalshiFetchedAt, getRuntimeBookAgeMs())) reasons.push("stale Kalshi book");
+  if (!bookIsFresh(pxFetchedAt, getRuntimeBookAgeMs())) reasons.push("stale ProphetX book");
 
   const notional = opp.bundleCost * opp.maxSize;
   if (!withinTradeCap(notional)) reasons.push("exceeds max trade USD");
@@ -43,6 +46,15 @@ export function evaluateRisk(
 
   if ((mode === "sandbox" || mode === "live") && !prophetxIsConfigured()) {
     reasons.push("ProphetX not configured for cross-venue orders");
+  }
+
+  const exposure = evaluateExposure();
+  if (!exposure.allowNewOrders) reasons.push(exposure.reason ?? "exposure limit");
+  if (exposure.throttle && exposure.allowNewOrders) reasons.push("exposure throttle active");
+
+  if (mode === "sandbox") {
+    const sessionGate = sessionAllowsExecution(notional);
+    if (!sessionGate.allowed) reasons.push(sessionGate.reason ?? "session cap");
   }
 
   const allowed = reasons.length === 0;

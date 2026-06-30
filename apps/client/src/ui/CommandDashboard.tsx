@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { bridge } from "@/game/EventBridge";
 import {
   businesses,
   totals,
@@ -281,7 +282,18 @@ export function CommandDashboard({ onClose }: Props) {
                 <tbody>
                   {rows.map((b) => (
                     <tr key={b.id}>
-                      <td>{b.name}</td>
+                      <td>
+                        {b.name}
+                        {b.id === "tyche-arb" && (
+                          <button
+                            type="button"
+                            className="tyche-desk-btn tyche-desk-btn--inline"
+                            onClick={() => bridge.emit("game:open-tyche-trading", undefined)}
+                          >
+                            Open desk
+                          </button>
+                        )}
+                      </td>
                       <td>{b.god}</td>
                       <td>
                         <span className="dash-pill">{b.platform}</span>

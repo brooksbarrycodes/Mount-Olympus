@@ -36,6 +36,8 @@ export function HudLayer({ onOpenTreasury }: { onOpenTreasury?: () => void }) {
   const [allies, setAllies] = useState<AllySummary[]>([]);
   const [hallOpen, setHallOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [tychePaused, setTychePaused] = useState(false);
+  const [tychePnl, setTychePnl] = useState<number | null>(null);
 
   const refreshTreasury = useCallback(async () => {
     try {
@@ -87,11 +89,22 @@ export function HudLayer({ onOpenTreasury }: { onOpenTreasury?: () => void }) {
   );
 
   useEffect(() => {
+    const refreshTyche = async () => {
+      try {
+        const s = await agentApi.tycheStatus();
+        setTychePaused(s.paused);
+        setTychePnl(s.todayPnlUsd);
+      } catch {
+        /* server offline */
+      }
+    };
     void refreshTreasury();
     void refreshMissions();
+    void refreshTyche();
     const poll = window.setInterval(() => {
       void refreshTreasury();
       void refreshMissions();
+      void refreshTyche();
     }, 30000);
     return () => clearInterval(poll);
   }, [refreshTreasury, refreshMissions]);
@@ -164,6 +177,8 @@ export function HudLayer({ onOpenTreasury }: { onOpenTreasury?: () => void }) {
           monthNet={hud.drachmasMonthNet}
           weekNet={hud.drachmasWeekNet}
           negative={hud.drachmasNegative}
+          tychePaused={tychePaused}
+          tychePnl={tychePnl ?? undefined}
           onClick={onOpenTreasury}
         />
         <MusicToggle />

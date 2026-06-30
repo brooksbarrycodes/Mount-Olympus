@@ -6,15 +6,33 @@ import {
   setRuntimeMode,
   setRuntimeStrategy,
   startTycheLoop,
+  stopTycheLoop,
 } from "./tycheLoop.ts";
-import { listTrades, getTrade, latestBalances, todayPnlUsd } from "./storage/repositories.ts";
+import {
+  listTrades,
+  getTrade,
+  latestBalances,
+  todayPnlUsd,
+  listSystemEvents,
+  listRiskDecisions,
+} from "./storage/repositories.ts";
 import { setTychePaused, isTychePaused } from "./risk/killSwitch.ts";
-import { onTradeEvent } from "./execution/executor.ts";
+import { onTradeEvent, onSystemEvent } from "./execution/executor.ts";
 import type { TradeBundle } from "./models/tradeBundle.ts";
+import { runPreflight, blockLiveMode } from "./preflight.ts";
+import {
+  getSessionStatus,
+  startSandboxSession,
+  stopSandboxSession,
+} from "./session/sessionManager.ts";
+import { getWatchdogState, startZeusWatchdog, stopZeusWatchdog } from "./watchdog/zeusWatchdog.ts";
+import { initTycheSchema } from "./storage/schema.ts";
 
 const LIVE_CONFIRM = "ENABLE TYCHE LIVE";
 
 export function registerTycheRoutes(app: FastifyInstance): void {
+  initTycheSchema();
+
   app.get("/tyche/health", async () => {
     const s = getTycheStatus();
     return {
@@ -22,6 +40,39 @@ export function registerTycheRoutes(app: FastifyInstance): void {
       mode: s.mode,
       venueHealth: s.venueHealth,
       lastScanAt: s.lastScanAt,
+      session: s.session,
+    };
+  });
+
+  app.get("/tyche/preflight", async () => runPreflight());
+
+  app.get("/tyche/session", async () => ({
+    ...getSessionStatus(),
+    watchdog: getWatchdogState(),
+  }));
+
+  app.post("/tyche/session/start", async (_req, reply) => {
+    const result = await startSandboxSession();
+    if (!result.ok) return reply.code(400).send(result);
+    startTycheLoop();
+    startZeusWatchdog();
+    await runScan();
+    return { ok: true, sessionId: result.sessionId, status: getSessionStatus() };
+  });
+
+  app.post<{ Body: { reason?: string } }>("/tyche/session/stop", async (req) => {
+    const reason = String(req.body?.reason ?? "manual_stop");
+    const result = await stopSandboxSession(reason);
+    stopTycheLoop();
+    stopZeusWatchdog();
+    return { ...result, status: getSessionStatus() };
+  });
+
+  app.get<{ Querystring: { limit?: string } }>("/tyche/events", async (req) => {
+    const limit = Number(req.query?.limit ?? 200);
+    return {
+      events: listSystemEvents(limit),
+      riskDecisions: listRiskDecisions(Math.min(limit, 100)),
     };
   });
 
@@ -31,6 +82,8 @@ export function registerTycheRoutes(app: FastifyInstance): void {
       ...s,
       todayPnlUsd: todayPnlUsd(),
       paused: isTychePaused(),
+      session: getSessionStatus(),
+      watchdog: getWatchdogState(),
     };
   });
 
@@ -58,6 +111,8 @@ export function registerTycheRoutes(app: FastifyInstance): void {
     if (!["observe", "paper", "sandbox", "live"].includes(mode)) {
       return reply.code(400).send({ error: "invalid mode" });
     }
+    const blocked = blockLiveMode(mode);
+    if (!blocked.ok) return reply.code(403).send({ error: blocked.error });
     if (mode === "live" && req.body?.confirm !== LIVE_CONFIRM) {
       return reply.code(400).send({ error: `live mode requires confirm: "${LIVE_CONFIRM}"` });
     }
@@ -96,19 +151,37 @@ export function registerTycheRoutes(app: FastifyInstance): void {
       reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
-    send("status", getTycheStatus());
+    const sendStatus = () => {
+      const s = getTycheStatus();
+      send("status", {
+        ...s,
+        todayPnlUsd: todayPnlUsd(),
+        paused: isTychePaused(),
+        session: getSessionStatus(),
+        watchdog: getWatchdogState(),
+      });
+    };
 
-    const unsub = onTradeEvent((trade: TradeBundle) => {
+    sendStatus();
+
+    const unsubTrade = onTradeEvent((trade: TradeBundle) => {
       send("trade", trade);
+      sendStatus();
+    });
+
+    const unsubSys = onSystemEvent((kind, detail) => {
+      send("system", { kind, detail, at: new Date().toISOString() });
     });
 
     const heartbeat = setInterval(() => {
       send("heartbeat", { at: new Date().toISOString() });
+      sendStatus();
     }, 15000);
 
     req.raw.on("close", () => {
       clearInterval(heartbeat);
-      unsub();
+      unsubTrade();
+      unsubSys();
     });
   });
 }

@@ -50,14 +50,18 @@ export function loadWorldImages(scene: Phaser.Scene): void {
   }
 }
 
-/** Force nearest-neighbor filtering on tilesets and interior floors (prevents seam bleed). */
+/** Nearest for tiles; LINEAR for painterly Tyche interior backdrops. */
 export function configurePixelArtTextures(scene: Phaser.Scene): void {
   const nearest = Phaser.Textures.FilterMode.NEAREST;
+  const linear = Phaser.Textures.FilterMode.LINEAR;
   for (const key of Object.keys(TILESET_ASSETS)) {
     if (scene.textures.exists(key)) scene.textures.get(key).setFilter(nearest);
   }
   if (scene.textures.exists(TX.marbleFloor)) {
     scene.textures.get(TX.marbleFloor).setFilter(nearest);
+  }
+  for (const key of [TX.tycheRoomBack]) {
+    if (scene.textures.exists(key)) scene.textures.get(key).setFilter(linear);
   }
 }
 

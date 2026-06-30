@@ -200,6 +200,164 @@ export function insertSystemEvent(kind: string, detail: Record<string, unknown>)
     JSON.stringify(detail),
     nowIso(),
   );
+  void import("../execution/executor.ts")
+    .then((m) => m.emitSystemEvent(kind, detail))
+    .catch(() => {});
+}
+
+export interface SystemEventRow {
+  id: number;
+  kind: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+}
+
+export function listSystemEvents(limit = 200): SystemEventRow[] {
+  const rows = db
+    .prepare(`SELECT id, kind, detail, created_at FROM tyche_system_events ORDER BY id DESC LIMIT ?`)
+    .all(limit) as Array<{ id: number; kind: string; detail: string; created_at: string }>;
+  return rows.map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    detail: JSON.parse(r.detail) as Record<string, unknown>,
+    createdAt: r.created_at,
+  }));
+}
+
+export interface RiskDecisionRow {
+  id: number;
+  opportunityId: number | null;
+  allowed: boolean;
+  reasons: string[];
+  createdAt: string;
+}
+
+export function listRiskDecisions(limit = 100): RiskDecisionRow[] {
+  const rows = db
+    .prepare(`SELECT id, opportunity_id, allowed, reasons, created_at FROM tyche_risk_decisions ORDER BY id DESC LIMIT ?`)
+    .all(limit) as Array<{ id: number; opportunity_id: number | null; allowed: number; reasons: string; created_at: string }>;
+  return rows.map((r) => ({
+    id: r.id,
+    opportunityId: r.opportunity_id,
+    allowed: r.allowed === 1,
+    reasons: JSON.parse(r.reasons) as string[],
+    createdAt: r.created_at,
+  }));
+}
+
+export interface TycheSessionRow {
+  id: number;
+  status: string;
+  mode: string;
+  strategy: string;
+  startedAt: string | null;
+  endsAt: string | null;
+  stoppedAt: string | null;
+  stopReason: string | null;
+  ordersPlaced: number;
+  ordersFailed: number;
+  notionalUsd: number;
+  configSnapshot: Record<string, unknown>;
+}
+
+export function createSessionRow(row: Omit<TycheSessionRow, "id">): number {
+  const r = db
+    .prepare(
+      `INSERT INTO tyche_sessions
+        (status, mode, strategy, started_at, ends_at, stopped_at, stop_reason, orders_placed, orders_failed, notional_usd, config_snapshot)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      row.status,
+      row.mode,
+      row.strategy,
+      row.startedAt,
+      row.endsAt,
+      row.stoppedAt,
+      row.stopReason,
+      row.ordersPlaced,
+      row.ordersFailed,
+      row.notionalUsd,
+      JSON.stringify(row.configSnapshot),
+    );
+  return Number(r.lastInsertRowid);
+}
+
+export function updateSessionRow(id: number, patch: Partial<TycheSessionRow>): void {
+  const cur = getSessionRow(id);
+  if (!cur) return;
+  const next = { ...cur, ...patch };
+  db.prepare(
+    `UPDATE tyche_sessions SET status = ?, stopped_at = ?, stop_reason = ?, orders_placed = ?, orders_failed = ?, notional_usd = ? WHERE id = ?`,
+  ).run(
+    next.status,
+    next.stoppedAt,
+    next.stopReason,
+    next.ordersPlaced,
+    next.ordersFailed,
+    next.notionalUsd,
+    id,
+  );
+}
+
+export function getSessionRow(id: number): TycheSessionRow | undefined {
+  const r = db.prepare(`SELECT * FROM tyche_sessions WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
+  return r ? rowToSession(r) : undefined;
+}
+
+export function getActiveSessionRow(): TycheSessionRow | undefined {
+  const r = db
+    .prepare(`SELECT * FROM tyche_sessions WHERE status = 'running' ORDER BY id DESC LIMIT 1`)
+    .get() as Record<string, unknown> | undefined;
+  return r ? rowToSession(r) : undefined;
+}
+
+export function getLatestSessionRow(): TycheSessionRow | undefined {
+  const r = db
+    .prepare(`SELECT * FROM tyche_sessions ORDER BY id DESC LIMIT 1`)
+    .get() as Record<string, unknown> | undefined;
+  return r ? rowToSession(r) : undefined;
+}
+
+function rowToSession(r: Record<string, unknown>): TycheSessionRow {
+  return {
+    id: Number(r.id),
+    status: String(r.status),
+    mode: String(r.mode),
+    strategy: String(r.strategy),
+    startedAt: r.started_at == null ? null : String(r.started_at),
+    endsAt: r.ends_at == null ? null : String(r.ends_at),
+    stoppedAt: r.stopped_at == null ? null : String(r.stopped_at),
+    stopReason: r.stop_reason == null ? null : String(r.stop_reason),
+    ordersPlaced: Number(r.orders_placed),
+    ordersFailed: Number(r.orders_failed),
+    notionalUsd: Number(r.notional_usd),
+    configSnapshot: JSON.parse(String(r.config_snapshot ?? "{}")) as Record<string, unknown>,
+  };
+}
+
+export function countRecentTrades(limit: number): TradeBundle[] {
+  return listTrades(limit);
+}
+
+export function sessionNotionalForSession(sessionId: number): number {
+  const session = getSessionRow(sessionId);
+  if (!session?.startedAt) return 0;
+  const r = db
+    .prepare(
+      `SELECT COALESCE(SUM(
+        (SELECT SUM(l.price * l.quantity) FROM tyche_trade_legs l WHERE l.trade_id = t.id)
+      ), 0) AS s FROM tyche_trades t WHERE t.created_at >= ?`,
+    )
+    .get(session.startedAt) as { s: number };
+  return r.s;
+}
+
+export function legFailureRateRecent(n = 10): number {
+  const trades = listTrades(n);
+  if (trades.length === 0) return 0;
+  const failed = trades.filter((t) => t.status === "failed").length;
+  return failed / trades.length;
 }
 
 export function dailyNotionalUsd(): number {

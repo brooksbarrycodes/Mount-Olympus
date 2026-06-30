@@ -46,3 +46,8 @@ tools/extracted/
 .venv/
 venv/
 __pycache__/
+
+# Secrets — never commit
+apps/server/.env
+apps/server/secrets/
+*.pem

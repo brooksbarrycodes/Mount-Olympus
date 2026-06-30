@@ -20,6 +20,9 @@ import { getLlm } from "../core/llm/index.ts";
 import { getTycheStatus, runScan } from "../tyche/tycheLoop.ts";
 import { setTychePaused } from "../tyche/risk/killSwitch.ts";
 import { listTrades, todayPnlUsd } from "../tyche/storage/repositories.ts";
+import { getSessionStatus } from "../tyche/session/sessionManager.ts";
+import { getWatchdogState, emergencyStopTyche } from "../tyche/watchdog/zeusWatchdog.ts";
+import { setKill } from "../core/guardrails.ts";
 import { treasurySummary, recordCost, listEntries } from "../treasury/ledger.ts";
 import {
   createMission,
@@ -107,6 +110,24 @@ const tools: Tool[] = [
           actualPnlUsd: t.actualPnlUsd,
         })),
         lastScanAt: s.lastScanAt,
+      };
+    },
+  },
+  {
+    spec: {
+      name: "tyche_session_status",
+      description: "Tyche sandbox session: countdown, order caps, watchdog state, venue health.",
+      parameters: noArgs as unknown as Record<string, unknown>,
+    },
+    run: () => {
+      const s = getTycheStatus();
+      return {
+        session: getSessionStatus(),
+        watchdog: getWatchdogState(),
+        mode: s.mode,
+        paused: s.paused,
+        venueHealth: s.venueHealth,
+        todayPnlUsd: todayPnlUsd(),
       };
     },
   },
@@ -352,6 +373,15 @@ const tools: Tool[] = [
         }
         if (target.includes("tyche")) {
           const lower = task.toLowerCase();
+          if (lower.includes("kill") || lower.includes("emergency")) {
+            setKill(true);
+            await emergencyStopTyche("zeus_delegate_kill");
+            return { ok: true, target: "tyche", action: "killed" };
+          }
+          if (lower.includes("stop session") || lower.includes("stop sandbox")) {
+            await emergencyStopTyche("zeus_delegate_stop");
+            return { ok: true, target: "tyche", action: "session_stopped" };
+          }
           if (lower.includes("pause")) {
             setTychePaused(true);
             return { ok: true, target: "tyche", action: "paused" };
@@ -400,6 +430,7 @@ export const zeus: Agent = {
       "  NEVER say you added a reminder unless add_mission succeeded. Reminders appear on the Mission HUD.",
       "- Big research, company lists, strategic plans → start_research (Scriptorium), NOT long chat replies.",
       "- Multi-step engineering / project work → linear_create_issue or linear_create_plan.",
+      "- Tyche sandbox session running → tyche_session_status; emergency stop → delegate tyche kill.",
       "- Personal countdown reminders → add_mission. Team/project backlog → Linear.",
       "",
       "Live state:",

@@ -1,0 +1,18 @@
+---
+description: Mandatory 2.5D building art rules before generating or replacing temple/building exteriors
+alwaysApply: true
+---
+
+# Building 2.5D art (Olympus overworld)
+
+Before calling `GenerateImage`, editing any `*_front.png` building source, or keying
+a new temple/building exterior into `apps/client/public/assets/props/`:
+
+1. **Read** [`docs/assets/BUILDING_2.5D_SPEC.md`](docs/assets/BUILDING_2.5D_SPEC.md)
+2. **Never** prompt with "head-on front elevation", "orthographic", or "flat façade"
+3. **Require** receding roof planes or dome mass behind the pediment — the entire
+   building is 2.5D, roof included. Steps-only depth is a failure.
+4. **Run** `node tools/validate_building_2_5d.mjs <source.png>` — do not keyout until PASS
+5. **Use** canonical prompts from `tools/buildings/prompts.json` when available
+
+Pipeline: generate → validate → keyout → preview at map scale.

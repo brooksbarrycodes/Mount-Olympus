@@ -6,4 +6,11 @@
 4. Auth: `POST https://api-ss-sandbox.betprophet.co/partner/auth/login`
 5. Docs index: https://docs.prophetx.co/llms.txt
 
-Env vars: `PROPHETX_ACCESS_KEY`, `PROPHETX_SECRET_KEY`, `PROPHETX_BASE_URL`
+Env vars (both required for login):
+
+| Variable | Paste this |
+|----------|------------|
+| `PROPHETX_ACCESS_KEY` | **access_key** from Generate New Token |
+| `PROPHETX_SECRET_KEY` | **secret_key** from Generate New Token |
+
+Optional: `PROPHETX_BASE_URL=https://api-ss-sandbox.betprophet.co/partner`

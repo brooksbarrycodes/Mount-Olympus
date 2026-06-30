@@ -99,4 +99,10 @@ export class Player {
     this.shadow.setPosition(this.sprite.x, this.sprite.y + 4);
     this.sprite.setDepth(this.sprite.y);
   }
+
+  /** Scale sprite + shadow for interiors with larger character proportions. */
+  setDisplayScale(scale: number): void {
+    this.sprite.setScale(scale);
+    this.shadow.setScale(scale);
+  }
 }

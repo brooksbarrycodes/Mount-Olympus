@@ -5,6 +5,8 @@ interface Props {
   monthNet: number;
   weekNet: number;
   negative: boolean;
+  tychePaused?: boolean;
+  tychePnl?: number;
   onClick?: () => void;
 }
 
@@ -16,7 +18,7 @@ function fmtUsd(n: number): string {
 /**
  * Real project treasury balance (USD = Drachmas). Click to expand breakdown.
  */
-export function CoinTicker({ drachmas, monthNet, weekNet, negative, onClick }: Props) {
+export function CoinTicker({ drachmas, monthNet, weekNet, negative, tychePaused, tychePnl, onClick }: Props) {
   const prev = useRef(drachmas);
 
   useEffect(() => {
@@ -39,6 +41,10 @@ export function CoinTicker({ drachmas, monthNet, weekNet, negative, onClick }: P
         </div>
         <div className="coin-rate">
           Month {fmtUsd(monthNet)} · Week {fmtUsd(weekNet)}
+          {tychePaused && <span className="coin-tyche-pill">Tyche paused</span>}
+          {!tychePaused && tychePnl != null && tychePnl < 0 && (
+            <span className="coin-tyche-pill coin-tyche-pill--warn">Tyche {fmtUsd(tychePnl)}</span>
+          )}
         </div>
       </div>
     </button>

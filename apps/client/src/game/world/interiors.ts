@@ -1,4 +1,5 @@
 import { TX } from "../art/keys";
+import { TYCHE_HALL } from "./tycheHallLayout";
 
 /**
  * Interior room definitions for enterable buildings. Each is a grand marble hall
@@ -29,7 +30,7 @@ export interface InteriorDef {
   height: number;
   accent: string;
   /** Visual theme controls the procedural dressing the scene paints. */
-  theme: "pantheon" | "temple";
+  theme: "pantheon" | "temple" | "tyche-reference";
   /** Hex color of the central woven mosaic rug. */
   rug: string;
   /** Where the player appears when entering. */
@@ -70,6 +71,12 @@ export interface InteriorDef {
   reliefs?: number[];
   /** Render a domed oculus light beam over the hall. */
   oculus?: boolean;
+  /** Scale player + interior occupant sprites (Tyche hall uses larger chars). */
+  characterScale?: number;
+  /** Camera start zoom override for this room. */
+  cameraZoom?: number;
+  /** World size used for min-zoom fill math (defaults to width/height). Match another room for identical zoom range. */
+  cameraFill?: { w: number; h: number };
 }
 
 export const interiors: Record<string, InteriorDef> = {
@@ -158,34 +165,21 @@ export const interiors: Record<string, InteriorDef> = {
   "temple-tyche": {
     id: "temple-tyche",
     name: "Temple of Tyche",
-    width: 820,
-    height: 560,
+    width: TYCHE_HALL.width,
+    height: TYCHE_HALL.height,
     accent: "#2a9d8f",
-    theme: "temple",
+    theme: "tyche-reference",
     rug: "#1a4d47",
-    entry: { x: 410, y: 490 },
-    exit: { x: 410, y: 526 },
-    braziers: [
-      { x: 180, y: 250 },
-      { x: 640, y: 250 },
-      { x: 280, y: 380 },
-      { x: 540, y: 380 },
-    ],
-    banners: [230, 410, 590],
-    dais: { x: 410, y: 230, w: 220, statue: TX.statueGoddess },
-    tradingDesk: { x: 620, y: 420 },
-    props: [
-      { key: TX.columnGold, x: 130, y: 250 },
-      { key: TX.columnGold, x: 690, y: 250 },
-      { key: TX.altar, x: 410, y: 330 },
-      { key: TX.commandDesk, x: 620, y: 420, scale: 0.55 },
-      { key: TX.amphora, x: 300, y: 480 },
-      { key: TX.amphora, x: 520, y: 480 },
-    ],
-    placards: [
-      { x: 410, y: 150, title: "Wheel of Fortune", subtitle: "Two venues, one lock" },
-      { x: 620, y: 360, title: "Trading Desk", subtitle: "Press E to open the monitor" },
-    ],
-    occupant: { oppId: "tyche", x: 410, y: 300 },
+    entry: TYCHE_HALL.entry,
+    exit: TYCHE_HALL.exit,
+    braziers: [],
+    banners: [],
+    props: [],
+    placards: [],
+    tradingDesk: TYCHE_HALL.tradingDesk,
+    occupant: { oppId: "tyche", x: TYCHE_HALL.occupant.x, y: TYCHE_HALL.occupant.y },
+    characterScale: 1.45,
+    /** Same zoom range as Temple of Zeus (820×560 fill, default 2.6 start). */
+    cameraFill: { w: 820, h: 560 },
   },
 };

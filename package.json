@@ -12,9 +12,12 @@
     "dev:server": "npm run dev --workspace apps/server",
     "build": "npm run build --workspace apps/client",
     "preview": "npm run preview --workspace apps/client",
-    "typecheck": "npm run typecheck --workspace apps/server && npm run typecheck --workspace apps/client"
+    "typecheck": "npm run typecheck --workspace apps/server && npm run typecheck --workspace apps/client",
+    "validate:building": "node tools/validate_building_2_5d.mjs",
+    "process:tyche-interior": "node tools/process_tyche_interior.mjs"
   },
   "devDependencies": {
-    "concurrently": "^10.0.3"
+    "concurrently": "^10.0.3",
+    "sharp": "^0.35.2"
   }
 }

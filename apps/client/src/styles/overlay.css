@@ -633,6 +633,22 @@
 .coin-amount { font-size: 16px; color: var(--gold-light); font-weight: 700; position: relative; }
 .coin-unit { font-size: 11px; color: var(--text-soft); font-weight: 400; }
 .coin-rate { font-size: 11px; color: #a6e3a1; }
+.coin-tyche-pill {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(42, 157, 143, 0.2);
+  border: 1px solid rgba(42, 157, 143, 0.45);
+  color: #7fd4c8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.coin-tyche-pill--warn {
+  background: rgba(224, 138, 106, 0.15);
+  border-color: rgba(224, 138, 106, 0.45);
+  color: #e08a6a;
+}
 .coin-pop {
   position: absolute;
   right: -6px;
@@ -1443,4 +1459,550 @@
 .voice-toast {
   z-index: 100001;
   max-width: min(420px, 90vw);
+}
+
+/* ---- Tyche trading desk (full viewport, business-first) ---------------- */
+
+.tyche-desk-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 10, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  animation: scrim-in 140ms ease-out;
+}
+
+.tyche-desk-shell {
+  width: min(1280px, 96vw);
+  height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  border: 1px solid rgba(42, 157, 143, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+  color: #e6edf3;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.tyche-desk-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(42, 157, 143, 0.25);
+  background: linear-gradient(180deg, rgba(42, 157, 143, 0.08), transparent);
+  flex-shrink: 0;
+}
+
+.tyche-desk-eyebrow {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.tyche-desk-header h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #f0f6fc;
+}
+
+.tyche-desk-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.tyche-desk-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tyche-desk-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(42, 157, 143, 0.15);
+  border: 1px solid rgba(42, 157, 143, 0.4);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #7fd4c8;
+}
+
+.tyche-desk-pill--warn {
+  background: rgba(232, 180, 74, 0.15);
+  border-color: rgba(232, 180, 74, 0.45);
+  color: #e8b44a;
+}
+
+.tyche-desk-error {
+  margin: 0;
+  padding: 8px 18px;
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+  flex-shrink: 0;
+}
+
+.tyche-desk-accounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(42, 157, 143, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.tyche-desk-account {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 17, 23, 0.85);
+}
+
+.tyche-desk-account--kalshi {
+  border-color: rgba(88, 166, 255, 0.35);
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.08), rgba(13, 17, 23, 0.9));
+}
+
+.tyche-desk-account--prophetx {
+  border-color: rgba(42, 157, 143, 0.4);
+  background: linear-gradient(135deg, rgba(42, 157, 143, 0.1), rgba(13, 17, 23, 0.9));
+}
+
+.tyche-desk-account--combined {
+  border-color: rgba(214, 170, 70, 0.35);
+  background: linear-gradient(135deg, rgba(214, 170, 70, 0.08), rgba(13, 17, 23, 0.9));
+}
+
+.tyche-desk-account-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.tyche-desk-account-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3fb950;
+  flex-shrink: 0;
+}
+
+.tyche-desk-account--kalshi .tyche-desk-account-dot { background: #58a6ff; }
+.tyche-desk-account--prophetx .tyche-desk-account-dot { background: #2a9d8f; }
+.tyche-desk-account--combined .tyche-desk-account-dot { display: none; }
+
+.tyche-desk-account-venue {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #c9d1d9;
+}
+
+.tyche-desk-account-env {
+  margin-left: auto;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6e7681;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tyche-desk-account-amt {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #f0f6fc;
+  line-height: 1.2;
+}
+
+.tyche-desk-account-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.tyche-desk-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.tyche-desk-rail {
+  border-right: 1px solid rgba(42, 157, 143, 0.2);
+  overflow-y: auto;
+  padding: 12px;
+  background: #0a0e14;
+}
+
+.tyche-desk-rail-block {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tyche-desk-rail-block h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8b949e;
+}
+
+.tyche-desk-dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.tyche-desk-dl dt { color: #8b949e; }
+.tyche-desk-dl dd { margin: 0; text-align: right; }
+
+.tyche-desk-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tyche-desk-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 12px;
+}
+
+.tyche-desk-section--grow {
+  flex: 1;
+}
+
+.tyche-desk-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.tyche-desk-section-head h3 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8b949e;
+}
+
+.tyche-desk-count {
+  font-size: 11px;
+  color: #6e7681;
+}
+
+.tyche-desk-scroll-x {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.tyche-desk-scroll-y {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tyche-desk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tyche-desk-table th,
+.tyche-desk-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tyche-desk-table th {
+  position: sticky;
+  top: 0;
+  background: #0d1117;
+  z-index: 1;
+  color: #8b949e;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tyche-desk-table .num { text-align: right; }
+
+.tyche-desk-row-exec {
+  background: rgba(42, 157, 143, 0.08);
+}
+
+.tyche-desk-ellipsis {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tyche-desk-mono {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+}
+
+.tyche-desk-venue {
+  color: #7fd4c8;
+  font-weight: 600;
+}
+
+.tyche-desk-muted { color: #6e7681; }
+.tyche-desk-empty { color: #6e7681; font-size: 13px; padding: 12px 0; }
+.tyche-desk-pos { color: #3fb950; }
+.tyche-desk-neg { color: #f85149; }
+
+.tyche-desk-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tyche-desk-badge--ok { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+.tyche-desk-badge--warn { background: rgba(232, 180, 74, 0.15); color: #e8b44a; }
+.tyche-desk-badge--muted { background: rgba(110, 118, 129, 0.15); color: #8b949e; }
+
+.tyche-desk-bundle {
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.tyche-desk-bundle--pending {
+  background: rgba(232, 180, 74, 0.12);
+  border-color: rgba(232, 180, 74, 0.45);
+}
+
+.tyche-desk-bundle--profit {
+  background: rgba(63, 185, 80, 0.1);
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.tyche-desk-bundle--loss {
+  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+.tyche-desk-bundle-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.tyche-desk-bundle-id {
+  color: #8b949e;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.tyche-desk-bundle-status {
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: #8b949e;
+}
+
+.tyche-desk-leg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.tyche-desk-leg-table th,
+.tyche-desk-leg-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+
+.tyche-desk-leg-table .num { text-align: right; }
+
+.tyche-desk-bundle-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tyche-desk-btn {
+  border: 1px solid rgba(42, 157, 143, 0.35);
+  background: rgba(42, 157, 143, 0.1);
+  color: #e6edf3;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.tyche-desk-btn--ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #8b949e;
+}
+
+.tyche-desk-btn--active {
+  background: rgba(42, 157, 143, 0.25);
+  border-color: #2a9d8f;
+  color: #7fd4c8;
+}
+
+.tyche-desk-btn--inline {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.tyche-desk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tyche-desk-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tyche-desk-rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: none;
+}
+
+@media (max-width: 900px) {
+  .tyche-desk-accounts { grid-template-columns: 1fr; }
+  .tyche-desk-body { grid-template-columns: 1fr; }
+  .tyche-desk-rail { border-right: none; border-bottom: 1px solid rgba(42, 157, 143, 0.2); max-height: 220px; }
+}
+
+.tyche-desk-session {
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(42, 157, 143, 0.35);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.tyche-desk-session-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.tyche-desk-session-countdown {
+  font-variant-numeric: tabular-nums;
+  color: #7fdbca;
+}
+
+.tyche-desk-session-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.tyche-desk-session-reasons {
+  font-size: 11px;
+  margin: 0 0 8px;
+}
+
+.tyche-desk-session-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.tyche-desk-btn--start {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: linear-gradient(180deg, #2a9d8f 0%, #1d6f65 100%);
+  border: 1px solid #52b788;
+  color: #fff;
+}
+
+.tyche-desk-btn--stop {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(180deg, #c1121f 0%, #8b0000 100%);
+  border: 1px solid #e5383b;
+  color: #fff;
+}
+
+.tyche-desk-pill--sandbox {
+  background: rgba(42, 157, 143, 0.25);
+  border-color: #2a9d8f;
+}
+
+.tyche-desk-activity {
+  max-height: 180px;
+}
+
+.tyche-desk-activity-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+}
+
+.tyche-desk-activity-icon {
+  opacity: 0.7;
+  width: 14px;
+}
+
+.tyche-desk-activity-detail {
+  margin: 4px 0 0;
+  font-size: 10px;
+  opacity: 0.65;
+  white-space: pre-wrap;
+  word-break: break-all;
 }

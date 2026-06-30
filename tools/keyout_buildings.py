@@ -19,6 +19,7 @@ SRC = "/Users/brooksbarry/.cursor/projects/Users-brooksbarry-Desktop-Gamified-AI
 JOBS = [
     ("temple_zeus_front.png", "temple_zeus.png"),
     ("pantheon_front.png", "pantheon.png"),
+    ("temple_tyche_front.png", "temple_tyche.png"),
 ]
 
 

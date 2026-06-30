@@ -101,6 +101,7 @@ export function calculateOpportunity(input: BundleInput): Opportunity {
       side: "yes",
       askPrice: yesAsk,
       depth: kalshi.yesAskDepth,
+      ticker: kalshi.venueMeta?.ticker ?? kalshi.marketId,
     },
     legB: {
       venue: "prophetx",
@@ -108,6 +109,8 @@ export function calculateOpportunity(input: BundleInput): Opportunity {
       side: "no",
       askPrice: noAsk,
       depth: px.noAskDepth,
+      strikeId: px.venueMeta?.strikeId,
+      americanOdds: px.venueMeta?.noAmericanOdds,
     },
     bundleCost: cost,
     grossEdge,

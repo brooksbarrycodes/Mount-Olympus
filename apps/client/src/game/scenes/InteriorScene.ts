@@ -3,12 +3,15 @@ import { bridge } from "../EventBridge";
 import { TX } from "../art/keys";
 import { interiors, type InteriorDef } from "../world/interiors";
 import { PROP_SCALE } from "../world/olympusWorld";
+import { TYCHE_HALL } from "../world/tycheHallLayout";
 import { getOpp } from "../world/agentStates";
 import { Player } from "../entities/createPlayer";
 import { Opp } from "../entities/createOpp";
 import { InputSystem } from "../systems/InputSystem";
 import { InteractionSystem, type Interactable } from "../systems/InteractionSystem";
 import { CameraSystem } from "../systems/CameraSystem";
+import { WalkGridCollision } from "../systems/WalkGridCollision";
+import collisionData from "../world/tycheCollision.json";
 import { SpeechBubbleSystem } from "../systems/SpeechBubbleSystem";
 import { buildOppDialogData, generateReply, resolveReply } from "../dialog";
 
@@ -44,6 +47,7 @@ export class InteriorScene extends Phaser.Scene {
   private inputSystem!: InputSystem;
   private interaction!: InteractionSystem;
   private cameraSystem!: CameraSystem;
+  private walkGrid?: WalkGridCollision;
   private speech?: SpeechBubbleSystem;
   private leaving = false;
   private seatMode: SeatMode = "none";
@@ -75,12 +79,18 @@ export class InteriorScene extends Phaser.Scene {
 
     if (def.theme === "pantheon") {
       this.buildPantheon(def);
+    } else if (def.theme === "tyche-reference") {
+      this.buildTycheReferenceHall(def);
     } else {
       this.buildRoom(def);
     }
 
     this.player = new Player(this, def.entry.x, def.entry.y);
     this.physics.add.collider(this.player.sprite, this.solids);
+
+    if (def.characterScale && def.characterScale !== 1) {
+      this.player.setDisplayScale(def.characterScale);
+    }
 
     if (def.occupant) {
       const oppDef = getOpp(def.occupant.oppId);
@@ -90,6 +100,9 @@ export class InteriorScene extends Phaser.Scene {
           spawn: { x: def.occupant.x, y: def.occupant.y },
           wanderRadius: 28,
         });
+        if (def.characterScale && def.characterScale !== 1) {
+          this.occupant.setDisplayScale(def.characterScale);
+        }
         this.physics.add.collider(this.player.sprite, this.occupant.sprite);
       }
     }
@@ -102,7 +115,22 @@ export class InteriorScene extends Phaser.Scene {
     this.interaction = new InteractionSystem(this);
     this.interaction.setInteractables(this.buildInteractables());
 
-    this.cameraSystem = new CameraSystem(this, this.player.sprite, def.width, def.height);
+    this.cameraSystem = new CameraSystem(
+      this,
+      this.player.sprite,
+      def.width,
+      def.height,
+      def.cameraZoom,
+      def.theme === "tyche-reference" ? { minY: TYCHE_HALL.northClipY } : undefined,
+      def.cameraFill,
+    );
+
+    if (def.theme === "tyche-reference") {
+      this.walkGrid = new WalkGridCollision(collisionData);
+      if (import.meta.env.DEV && new URLSearchParams(window.location.search).has("debugCollision")) {
+        this.walkGrid.drawDebug(this, 60000);
+      }
+    }
 
     this.registerBridge();
     this.cameras.main.fadeIn(260, 10, 8, 14);
@@ -181,6 +209,27 @@ export class InteriorScene extends Phaser.Scene {
     this.buildWalls(def);
     this.buildPlacards(def);
     this.buildProps(def);
+    this.buildExitMat(def);
+  }
+
+  /** Reference-driven Tyche trading hall — single scaled backdrop, no fore overlay. */
+  private buildTycheReferenceHall(def: InteriorDef): void {
+    const L = TYCHE_HALL;
+
+    this.add.rectangle(0, 0, def.width, def.height, 0x0a1210).setOrigin(0, 0).setDepth(-101);
+
+    this.add
+      .image(def.width / 2, def.height / 2, TX.tycheRoomBack)
+      .setOrigin(0.5, 0.5)
+      .setScale(L.artScale)
+      .setDepth(0);
+
+    // Opaque ceiling cap — hides backdrop artifacts above the playable room
+    this.add
+      .rectangle(0, 0, def.width, L.northClipY, 0x1c1a16)
+      .setOrigin(0, 0)
+      .setDepth(50001);
+
     this.buildExitMat(def);
   }
 
@@ -655,7 +704,7 @@ export class InteriorScene extends Phaser.Scene {
         getPos: () => this.def.headSeat!,
       });
     }
-    if (this.def.desk) {
+    if (this.def.desk && this.def.theme !== "tyche-reference") {
       list.push({
         kind: "enter",
         refId: "command-desk",
@@ -734,16 +783,21 @@ export class InteriorScene extends Phaser.Scene {
   private sitAtTradingDesk(): void {
     if (this.seatMode !== "none" || !this.def.tradingDesk) return;
     this.seatMode = "trading";
-    this.player.snapTo(this.def.tradingDesk.x, this.def.tradingDesk.y + 20, "up");
+    this.player.snapTo(this.def.tradingDesk.x, this.def.tradingDesk.y + 20, "up", true);
     this.inputSystem.setEnabled(false);
     bridge.emit("game:open-tyche-trading", undefined);
   }
 
   private endSeated(): void {
     if (this.seatMode === "none") return;
-    const wasMeeting = this.seatMode === "meeting" || this.seatMode === "gathering";
+    const mode = this.seatMode;
+    const wasMeeting = mode === "meeting" || mode === "gathering";
     this.seatMode = "none";
     this.inputSystem.setEnabled(true);
+    if (mode === "trading" && this.def.tradingDesk) {
+      // Chair tile is blocked in the walk grid; step south onto walkable floor.
+      this.player.snapTo(this.def.tradingDesk.x, this.def.tradingDesk.y + 28, "down");
+    }
     if (wasMeeting) {
       this.gods.forEach((god, i) => {
         const home = this.wanderHomes[i] ?? { x: god.x, y: god.y };
@@ -824,6 +878,16 @@ export class InteriorScene extends Phaser.Scene {
     }
 
     this.player.sync();
+    if (this.def.theme === "tyche-reference" && this.seatMode === "none") {
+      const body = this.player.sprite.body as Phaser.Physics.Arcade.Body;
+      const prevFootX = body.prev.x + body.width / 2;
+      const prevFootY = body.prev.y + body.height;
+      this.walkGrid?.resolvePlayerBody(body, prevFootX, prevFootY);
+      if (this.player.y < TYCHE_HALL.walkMinY) {
+        body.y = TYCHE_HALL.walkMinY - body.height;
+        body.setVelocityY(0);
+      }
+    }
     this.occupant?.update(time);
     for (const god of this.gods) god.update(time);
     this.speech?.update(time, this.cameras.main.zoom);

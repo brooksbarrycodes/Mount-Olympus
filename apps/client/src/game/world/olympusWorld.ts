@@ -84,9 +84,9 @@ export const locations: LocationDef[] = [
     id: "temple-tyche",
     name: "Temple of Tyche",
     textureKey: TX.templeTyche,
-    x: 2900,
+    x: 2480,
     y: 1180,
-    scale: 0.36,
+    scale: 0.34,
     enterable: true,
     description: "Fortune's shrine and the cross-venue arb trading desk.",
     doorOffsetY: 24,
@@ -95,7 +95,6 @@ export const locations: LocationDef[] = [
 
 /** Empty buildable plots advertising future growth (reserved god-regions). */
 export const templePlots: Array<{ x: number; y: number }> = [
-  { x: 3120, y: 1180 },
   { x: 2820, y: 1560 },
   { x: 760, y: 1760 },
   { x: 1240, y: 1900 },
@@ -109,6 +108,8 @@ export const plazas: Array<{ x: number; y: number; w: number; h: number; floor: 
   { x: 1490, y: 470, w: 620, h: 450, floor: TX.floorPantheon },
   // Temple of Zeus sanctuary terrace
   { x: 1130, y: 990, w: 410, h: 320, floor: TX.floorTemple },
+  // Temple of Tyche — Fortune terrace (east agora)
+  { x: 2330, y: 990, w: 340, h: 300, floor: TX.floorFortune },
   // Central agora
   { x: 1560, y: 1180, w: 480, h: 360, floor: TX.floorAgora },
   // Garden of the Muses (west)
@@ -130,7 +131,7 @@ export const groundPatches: Array<{ key: string; x: number; y: number; w: number
   // --- east fields ---
   { key: TX.patchMeadow, x: 2780, y: 580, w: 360, flip: true },
   { key: TX.patchRocks, x: 3180, y: 860, w: 300 },
-  { key: TX.patchField, x: 2920, y: 1150, w: 300 },
+  { key: TX.patchField, x: 3180, y: 860, w: 300 },
   { key: TX.patchMeadow, x: 2640, y: 1520, w: 380 },
   { key: TX.patchRocks, x: 3180, y: 1800, w: 320, flip: true },
   { key: TX.patchField, x: 2480, y: 1880, w: 280, flip: true },
@@ -175,12 +176,13 @@ export const pathways: Array<Array<{ x: number; y: number }>> = [
     { x: 940, y: 1320 },
     { x: 800, y: 1300 },
   ],
-  // agora -> eastern groves
+  // agora -> eastern groves -> Temple of Tyche
   [
     { x: 2010, y: 1334 },
     { x: 2230, y: 1322 },
     { x: 2440, y: 1300 },
-    { x: 2640, y: 1286 },
+    { x: 2560, y: 1250 },
+    { x: 2480, y: 1210 },
   ],
   // Temple of Zeus -> Garden of the Muses
   [
@@ -240,6 +242,20 @@ export const decor: DecorItem[] = [
   { key: TX.cypress, x: 1540, y: 1010 },
   { key: TX.flowersPurple, x: 1260, y: 1230 },
   { key: TX.flowersPurple, x: 1410, y: 1230 },
+
+  // ---- Temple of Tyche sanctuary (east agora) ----
+  { key: TX.column, x: 2370, y: 1070, solid: true },
+  { key: TX.column, x: 2590, y: 1070, solid: true },
+  { key: TX.brazierTripod, x: 2410, y: 1150, solid: true },
+  { key: TX.brazierTripod, x: 2550, y: 1150, solid: true },
+  { key: TX.statueGoddess, x: 2410, y: 1250, solid: true },
+  { key: TX.statueHorse, x: 2550, y: 1250, solid: true },
+  { key: TX.cypress, x: 2320, y: 1010 },
+  { key: TX.cypress, x: 2640, y: 1010 },
+  { key: TX.amphora, x: 2420, y: 1210 },
+  { key: TX.amphora, x: 2540, y: 1210 },
+  { key: TX.flowersYellow, x: 2460, y: 1230 },
+  { key: TX.flowersWhite, x: 2500, y: 1230 },
 
   // ---- Central agora ----
   // y pushed down so the basin (origin is bottom-center) sits concentric on the

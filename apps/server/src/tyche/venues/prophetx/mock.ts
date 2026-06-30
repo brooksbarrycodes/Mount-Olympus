@@ -7,6 +7,7 @@ export function mockProphetxMarkets(kalshiMarkets: NormalizedMarket[]): Normaliz
     const pxId = k.marketId.replace("MOCK-", "PX-");
     return {
       venue: "prophetx" as const,
+      dataSource: "mock" as const,
       marketId: pxId,
       eventId: `PX-${k.eventId}`,
       eventName: k.eventName.replace(" to win", ""),

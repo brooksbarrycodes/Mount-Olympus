@@ -73,6 +73,7 @@ export const config = {
   },
 
   tyche: {
+    autoScan: str("TYCHE_AUTO_SCAN", "false") === "true",
     mode: ((): TycheMode => {
       const m = str("TYCHE_MODE", "observe");
       if (m === "paper" || m === "sandbox" || m === "live") return m;
@@ -91,18 +92,28 @@ export const config = {
     maxSlippage: num("TYCHE_MAX_SLIPPAGE", 0.005),
     maxOrderbookAgeMs: num("TYCHE_MAX_ORDERBOOK_AGE_MS", 1000),
     maxLegDelayMs: num("TYCHE_MAX_LEG_DELAY_MS", 500),
-    scanIntervalMs: num("TYCHE_SCAN_INTERVAL_MS", 5000),
+    scanIntervalMs: num("TYCHE_SCAN_INTERVAL_MS", 12000),
+    sessionMaxDurationMs: num("TYCHE_SESSION_MAX_DURATION_MS", 18_000_000),
+    sessionMaxOrders: num("TYCHE_SESSION_MAX_ORDERS", 50),
+    sessionMaxNotionalUsd: num("TYCHE_SESSION_MAX_NOTIONAL_USD", 500),
   },
 
   kalshi: {
     env: (str("KALSHI_ENV", "demo") === "production" ? "production" : "demo") as KalshiEnv,
+    /** Key ID from Kalshi Profile → API Keys (KALSHI-ACCESS-KEY header). */
     apiKey: str("KALSHI_API_KEY"),
+    /** @deprecated HMAC secret — Kalshi now uses RSA. Use KALSHI_PRIVATE_KEY_PATH instead. */
     apiSecret: str("KALSHI_API_SECRET"),
+    /** Path to downloaded *.pem private key (recommended). */
+    privateKeyPath: str("KALSHI_PRIVATE_KEY_PATH"),
+    /** Inline PEM (optional); use \\n for newlines if not using a file path. */
+    privateKeyPem: str("KALSHI_PRIVATE_KEY"),
     demoBaseUrl: "https://demo-api.kalshi.co/trade-api/v2",
     prodBaseUrl: "https://api.elections.kalshi.com/trade-api/v2",
   },
 
   prophetx: {
+    enabled: str("PROPHETX_ENABLED", "false") === "true",
     env: (str("PROPHETX_ENV", "sandbox") === "production" ? "production" : "sandbox") as ProphetXEnv,
     accessKey: str("PROPHETX_ACCESS_KEY"),
     secretKey: str("PROPHETX_SECRET_KEY"),
@@ -122,11 +133,18 @@ export function ttsIsLive(): boolean {
 }
 
 export function kalshiIsConfigured(): boolean {
-  return config.kalshi.apiKey.length > 0;
+  const hasKey = config.kalshi.apiKey.length > 0;
+  const hasPrivate =
+    config.kalshi.privateKeyPath.length > 0 || config.kalshi.privateKeyPem.length > 0;
+  return hasKey && hasPrivate;
 }
 
 export function prophetxIsConfigured(): boolean {
   return config.prophetx.accessKey.length > 0 && config.prophetx.secretKey.length > 0;
+}
+
+export function prophetxIsEnabled(): boolean {
+  return config.prophetx.enabled;
 }
 
 export function kalshiBaseUrl(): string {

@@ -7,6 +7,7 @@ export function mockKalshiMarkets(): NormalizedMarket[] {
   return [
     {
       venue: "kalshi",
+      dataSource: "mock" as const,
       marketId: "MOCK-METS-WIN",
       eventId: "MOCK-METS-2026",
       eventName: "NY Mets to win vs Phillies",
@@ -27,6 +28,7 @@ export function mockKalshiMarkets(): NormalizedMarket[] {
     },
     {
       venue: "kalshi",
+      dataSource: "mock" as const,
       marketId: "MOCK-LAKERS-WIN",
       eventId: "MOCK-LAKERS-2026",
       eventName: "Lakers to win vs Celtics",

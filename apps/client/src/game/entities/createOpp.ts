@@ -161,4 +161,11 @@ export class Opp {
       this.glow.setAlpha(0.42 + Math.sin(time / 420) * 0.16);
     }
   }
+
+  /** Scale sprite, shadow, and glow for larger interior proportions. */
+  setDisplayScale(scale: number): void {
+    this.sprite.setScale(scale);
+    this.shadow.setScale(scale);
+    this.glow?.setScale(scale);
+  }
 }

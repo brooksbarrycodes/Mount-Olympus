@@ -16,8 +16,12 @@ sets `pixelArt: true`, so everything scales up crisply across the zoom range.
 - `tiles/` — seamless 32x32 ground tiles: `grass.png`, `grass2.png`,
   `dirt.png`, `marble.png` (marble is procedurally generated to tile cleanly).
 - `props/` — extracted/recomposed sprites: columns, statues, fountains, pools,
-  braziers, trees, bushes, rocks, stumps, plus the composed `temple_zeus.png`
-  and `hq.png` building facades.
+  braziers, trees, bushes, rocks, stumps, plus AI-keyed building exteriors
+  (`pantheon.png`, `temple_zeus.png`, `temple_tyche.png`).
+
+**Building exteriors:** read [`BUILDING_2.5D_SPEC.md`](BUILDING_2.5D_SPEC.md)
+before generating any temple/building PNG. Generate → validate
+(`tools/validate_building_2_5d.mjs`) → keyout (`tools/keyout_buildings.py`).
 - `characters/` — staged pack character sheets (`model.png`, `villagers.png`),
   not yet wired into the runtime.
 

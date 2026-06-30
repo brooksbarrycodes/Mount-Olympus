@@ -5,6 +5,8 @@ import { scoreMatch, normalizeEventKey } from "./matching/rules.ts";
 import type { NormalizedMarket } from "./models/normalizedMarket.ts";
 import { handleLegRisk } from "./execution/legRiskManager.ts";
 import { dualBalanceGate } from "./pricing/capitalManager.ts";
+import { mapKalshiMarket } from "./venues/kalshi/mapper.ts";
+import { flattenPxSelections, mapProphetxMoneyline } from "./venues/prophetx/mapper.ts";
 
 describe("bundleCalculator", () => {
   it("computes 49+49=98 bundle with 2c gross edge", () => {
@@ -21,6 +23,7 @@ describe("bundleCalculator", () => {
 describe("matching", () => {
   const base = (over: Partial<NormalizedMarket>): NormalizedMarket => ({
     venue: "kalshi",
+    dataSource: "live",
     marketId: "A",
     eventId: "E",
     eventName: "NY Mets vs Phillies",
@@ -84,6 +87,71 @@ describe("risk", () => {
       30,
     );
     assert.equal(bad, false);
+  });
+});
+
+describe("kalshiMapper", () => {
+  it("maps yes_ask_dollars fields from list API", () => {
+    const m = mapKalshiMarket({
+      ticker: "TEST-TICKER",
+      event_ticker: "TEST-EVENT",
+      title: "Yankees win",
+      category: "MLB",
+      yes_ask_dollars: "0.4900",
+      no_ask_dollars: "0.5100",
+      yes_bid_dollars: "0.4800",
+      no_bid_dollars: "0.5000",
+      volume_fp: "100.00",
+    });
+    assert.ok(m);
+    assert.equal(m!.yesAsk, 0.49);
+    assert.equal(m!.noAsk, 0.51);
+    assert.equal(m!.marketId, "TEST-TICKER");
+  });
+
+  it("falls back to legacy cent fields", () => {
+    const m = mapKalshiMarket({
+      ticker: "LEGACY",
+      yes_ask: 49,
+      no_ask: 51,
+    });
+    assert.ok(m);
+    assert.equal(m!.yesAsk, 0.49);
+    assert.equal(m!.noAsk, 0.51);
+  });
+
+  it("rejects zero asks", () => {
+    assert.equal(mapKalshiMarket({ ticker: "X", yes_ask_dollars: "0.0000", no_ask_dollars: "0.5100" }), null);
+  });
+});
+
+describe("prophetxMapper", () => {
+  it("flattens nested selections", () => {
+    const flat = flattenPxSelections([
+      [{ price: -110, line_id: "a" }],
+      [{ price: 100, line_id: "b" }],
+    ]);
+    assert.equal(flat.length, 2);
+  });
+
+  it("maps moneyline with nested selections and odds field", () => {
+    const m = mapProphetxMoneyline(
+      {
+        id: 42,
+        type: "moneyline",
+        name: "Moneyline",
+        status: "active",
+        selections: [
+          [{ odds: -110, line_id: "yes-strike" }],
+          [{ odds: 100, line_id: "no-strike" }],
+        ],
+      },
+      { event_id: 999, name: "Yankees vs Red Sox", tournament_name: "MLB" },
+      "baseball",
+    );
+    assert.ok(m);
+    assert.equal(m!.marketId, "PX-42");
+    assert.ok(m!.yesAsk > 0 && m!.noAsk > 0);
   });
 });
 

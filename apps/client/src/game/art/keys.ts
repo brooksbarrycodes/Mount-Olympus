@@ -51,6 +51,9 @@ export const TX = {
   candelabra: "tx-candelabra",
   wallRelief: "tx-wall-relief",
 
+  /** Tyche reference hall — single backdrop */
+  tycheRoomBack: "tx-tyche-room-back",
+
   // Buildings (loaded composed images)
   headquarters: "tx-headquarters",
   pantheon: "tx-pantheon",
@@ -61,6 +64,7 @@ export const TX = {
   // Ground overlays (AI-generated painterly mosaics / patches)
   floorPantheon: "tx-floor-pantheon",
   floorTemple: "tx-floor-temple",
+  floorFortune: "tx-floor-fortune",
   floorAgora: "tx-floor-agora",
   floorGarden: "tx-floor-garden",
   pondWater: "tx-pond-water",
@@ -144,9 +148,10 @@ export const IMAGE_ASSETS: Record<string, string> = {
   [TX.headquarters]: "assets/props/hq.png",
   [TX.pantheon]: "assets/props/pantheon.png",
   [TX.templeZeus]: "assets/props/temple_zeus.png",
-  [TX.templeTyche]: "assets/props/temple_zeus.png",
+  [TX.templeTyche]: "assets/props/temple_tyche.png",
   [TX.floorPantheon]: "assets/ground/pantheon_floor.png",
   [TX.floorTemple]: "assets/ground/temple_floor.png",
+  [TX.floorFortune]: "assets/ground/fortune_terrace_floor.png",
   [TX.floorAgora]: "assets/ground/agora_floor.png",
   [TX.floorGarden]: "assets/ground/garden_floor.png",
   [TX.pondWater]: "assets/ground/pond_water.png",
@@ -163,6 +168,8 @@ export const IMAGE_ASSETS: Record<string, string> = {
   [TX.commandDesk]: "assets/interior/command_desk.png",
   [TX.candelabra]: "assets/interior/candelabra.png",
   [TX.wallRelief]: "assets/interior/wall_relief.png",
+
+  [TX.tycheRoomBack]: "assets/interior/tyche_room_back.png",
 };
 
 /**

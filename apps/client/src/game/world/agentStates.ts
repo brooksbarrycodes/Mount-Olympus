@@ -81,7 +81,7 @@ export const opps: OppDef[] = [
     domain: "Scans Kalshi and ProphetX for locked hedge opportunities; executes within risk rails.",
     textureKey: TX.tyche,
     accent: "#2a9d8f",
-    spawn: { x: 2900, y: 1120 },
+    spawn: { x: 2480, y: 1240 },
     wanderRadius: 40,
     status: "running",
     activity: "Watching order books for bundle edges after fees.",

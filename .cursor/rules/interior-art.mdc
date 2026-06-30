@@ -1,0 +1,14 @@
+---
+description: Mandatory interior art rules before generating or replacing room/hall interiors
+alwaysApply: true
+---
+
+# Interior art (Olympus rooms)
+
+Before generating interior PNGs or editing `buildTycheReferenceHall` / interior assets:
+
+1. **Read** [`docs/assets/INTERIOR_ART_SPEC.md`](docs/assets/INTERIOR_ART_SPEC.md)
+2. **Never** slice overlapping rectangles from one image and re-compose in Phaser
+3. Use **one backdrop** at 1:1 pixel size + **keyed foreground overlay** for y-sort only
+4. Prefer **AI native resolution** over Sharp upscale
+5. Run `node tools/process_tyche_interior.mjs` after generating room layers

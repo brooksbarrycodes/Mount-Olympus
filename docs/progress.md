@@ -257,13 +257,18 @@ Extra list (requested for the overnight run):
   reference implies more detailed sprites with more frames).
 - Bridges over water, and animated pond-water shimmer.
 
-## Buildings v2 — AI-generated front-facing temples
+## Buildings v2 — AI-generated 2.5D temples
 
 The hand-composed marble facades didn't nail the 2.5D look, so the temples are now
 generated images, matched to `references/ideal reference.png` + the Stardew refs:
 - Generated isolated on flat magenta, then background-keyed + de-fringed + trimmed
   by `tools/keyout_buildings.py` -> `public/assets/props/{pantheon,temple_zeus}.png`.
-- FRONT ELEVATION (head-on) orientation per request (first pass was isometric 3/4).
+- **Olympus 2.5D camera** (see `docs/assets/BUILDING_2.5D_SPEC.md`): front portico
+  faces the viewer, but **receding roof planes or dome mass** must be visible behind
+  the pediment — NOT orthographic "head-on front elevation" (that produces flat
+  poster façades with invisible roofs; first pass was isometric 3/4, second pass was
+  flat head-on; both were wrong until the Pantheon roof fix).
+- Validated with `tools/validate_building_2_5d.mjs` before keyout.
 - Re-tuned on-map scale for the higher-res art: Pantheon 0.46, Temple of Zeus 0.34.
 - `tools/build_pantheon.py` (the old PIL facade composer) is now superseded.
 - Verified placement/fit via `tools/preview/map_schematic.png`; typecheck passes.
@@ -357,7 +362,7 @@ Completely reimagined the Pantheon interior as a living, domed command hall.
 
 ## Task — Tyche cross-venue arb
 
-- [x] Phase 0: `TYCHE_`/`KALSHI_`/`PROPHETX_` config, `.env.example`, docs under `docs/tyche/`.
+- [x] Phase 0: `TYCHE_`/`KALSHI_`/`PROPHETX_` config, `.env.example`, docs under `docs/tyche/` (see [RULES.md](docs/tyche/RULES.md) for full config table).
 - [x] Phase 1: models, SQLite schema, repositories, ledger seed `tyche-arb`.
 - [x] Phase 2: Kalshi adapter (auth, REST, mapper, mock fallback).
 - [x] Phase 3: ProphetX stub (login skeleton, awaiting_credentials health).
@@ -366,7 +371,8 @@ Completely reimagined the Pantheon interior as a living, domed command hall.
 - [x] Phase 9: Tyche opp, Temple east of agora (~2900,1180), interior + trading desk.
 - [x] Phase 10: `TycheTradingFloor.tsx` overlay (yellow/green/red bundles).
 - [x] Phase 11: unit tests + `smoke-tyche.ts`.
-- [ ] Phase 12: ProphetX sandbox bake-off when keys live (see `docs/tyche/sandbox-bakeoff.md`).
+- [x] Phase 11.5: [Operating rules doc](docs/tyche/RULES.md) — sandbox-only mandate, algorithms, truthfulness policy, ProphetX emails, gap register (pre-sandbox-exec gate).
+- [ ] Phase 12: ProphetX sandbox bake-off when keys live (see `docs/tyche/sandbox-bakeoff.md`; must comply with `docs/tyche/RULES.md`).
 
 ## Task — Treasury, Zeus powers, Audio, Linear HQ
 

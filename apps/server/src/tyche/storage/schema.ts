@@ -87,6 +87,23 @@ export function initTycheSchema(): void {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS tyche_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      status TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      strategy TEXT NOT NULL,
+      started_at TEXT,
+      ends_at TEXT,
+      stopped_at TEXT,
+      stop_reason TEXT,
+      orders_placed INTEGER NOT NULL DEFAULT 0,
+      orders_failed INTEGER NOT NULL DEFAULT 0,
+      notional_usd REAL NOT NULL DEFAULT 0,
+      config_snapshot TEXT NOT NULL DEFAULT '{}'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tyche_sessions_started ON tyche_sessions(started_at DESC);
+
     CREATE INDEX IF NOT EXISTS idx_tyche_trades_created ON tyche_trades(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_tyche_opportunities_created ON tyche_opportunities(created_at DESC);
   `);

@@ -146,6 +146,14 @@ export interface ZeusSessionDetail extends ZeusSessionSummary {
   messages: { role: "user" | "assistant"; content: string; createdAt: string }[];
 }
 
+export interface TycheOpportunityLeg {
+  venue: "kalshi" | "prophetx";
+  marketId: string;
+  side: "yes" | "no";
+  askPrice: number;
+  depth: number;
+}
+
 export interface TycheTradeLeg {
   venue: string;
   marketId: string;
@@ -154,6 +162,8 @@ export interface TycheTradeLeg {
   quantity: number;
   orderId: string | null;
   status: string;
+  feeUsd?: number | null;
+  filledQty?: number;
 }
 
 export interface TycheTradeBundle {
@@ -170,13 +180,23 @@ export interface TycheTradeBundle {
 }
 
 export interface TycheOpportunity {
+  id?: number;
   eventName: string;
   sport: string;
-  strategyTag: string;
+  strategyTag: "live" | "static";
+  matchConfidence?: string;
+  legA?: TycheOpportunityLeg;
+  legB?: TycheOpportunityLeg;
+  bundleCost?: number;
+  grossEdge?: number;
   netEdge: number;
+  worstCaseProfitUsd?: number;
   worstCaseRoi: number;
   maxSize: number;
+  priorityScore?: number;
   shouldExecute: boolean;
+  rejectionReasons?: string[];
+  createdAt?: string;
 }
 
 export interface TycheStatus {
@@ -194,9 +214,60 @@ export interface TycheStatus {
     deployedUsd: number;
   } | null;
   venueHealth: {
-    kalshi: { connected: boolean; message: string; mode: string };
-    prophetx: { connected: boolean; message: string; status: string };
+    kalshi: { connected: boolean; message: string; mode: string; dataSource?: string };
+    prophetx: { connected: boolean; message: string; status: string; dataSource?: string };
   } | null;
+  session?: TycheSessionStatus;
+}
+
+export interface TycheSessionStatus {
+  active: boolean;
+  remainingMs: number | null;
+  ordersPlaced: number;
+  ordersCap: number;
+  notionalUsd: number;
+  notionalCap: number;
+  session: {
+    id: number;
+    status: string;
+    mode: string;
+    strategy: string;
+    startedAt: string | null;
+    endsAt: string | null;
+    stopReason: string | null;
+  } | null;
+}
+
+export interface TychePreflight {
+  ready: boolean;
+  reasons: string[];
+  kalshiMarkets: number;
+  prophetxMarkets: number;
+  diagnostics?: {
+    kalshi: {
+      dataSource: string;
+      message: string;
+      marketCount: number;
+      rawCount?: number;
+      mappedCount?: number;
+    };
+    prophetx: {
+      dataSource: string;
+      message: string;
+      marketCount: number;
+      rawCount?: number;
+      mappedCount?: number;
+      tournamentsQueried?: number;
+      eventsFound?: number;
+    };
+  };
+}
+
+export interface TycheSystemEvent {
+  id: number;
+  kind: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface TreasurySummary {
@@ -368,12 +439,42 @@ export const agentApi = {
   tycheTrades: () => get<{ trades: TycheTradeBundle[] }>("/tyche/trades"),
   tychePause: (paused: boolean) => post<{ ok: boolean }>("/tyche/pause", { paused }),
   tycheStrategy: (strategy: string) => post<{ ok: boolean }>("/tyche/strategy", { strategy }),
+  tycheMode: (mode: string, confirm?: string) =>
+    post<{ ok: boolean }>("/tyche/mode", { mode, confirm }),
+  tycheScan: () => post<{ ok: boolean }>("/tyche/scan", {}),
+  tychePreflight: () => get<TychePreflight>("/tyche/preflight"),
+  tycheSession: () => get<TycheSessionStatus & { watchdog?: Record<string, unknown> }>("/tyche/session"),
+  tycheSessionStart: () => post<{ ok: boolean; sessionId?: number; error?: string }>("/tyche/session/start", {}),
+  tycheSessionStop: (reason?: string) =>
+    post<{ ok: boolean }>("/tyche/session/stop", { reason: reason ?? "manual_stop" }),
+  tycheEvents: () =>
+    get<{ events: TycheSystemEvent[]; riskDecisions: unknown[] }>("/tyche/events?limit=200"),
 
-  tycheStream(onTrade: (trade: TycheTradeBundle) => void): { close: () => void } {
+  tycheStream(handlers: {
+    onTrade: (trade: TycheTradeBundle) => void;
+    onStatus?: (status: TycheStatus) => void;
+    onSystem?: (ev: { kind: string; detail: Record<string, unknown>; at: string }) => void;
+  }): { close: () => void } {
     const es = new EventSource(`${BASE}/tyche/stream`);
     es.addEventListener("trade", (ev) => {
       try {
-        onTrade(JSON.parse((ev as MessageEvent).data) as TycheTradeBundle);
+        handlers.onTrade(JSON.parse((ev as MessageEvent).data) as TycheTradeBundle);
+      } catch {
+        /* ignore malformed */
+      }
+    });
+    es.addEventListener("status", (ev) => {
+      if (!handlers.onStatus) return;
+      try {
+        handlers.onStatus(JSON.parse((ev as MessageEvent).data) as TycheStatus);
+      } catch {
+        /* ignore malformed */
+      }
+    });
+    es.addEventListener("system", (ev) => {
+      if (!handlers.onSystem) return;
+      try {
+        handlers.onSystem(JSON.parse((ev as MessageEvent).data) as { kind: string; detail: Record<string, unknown>; at: string });
       } catch {
         /* ignore malformed */
       }

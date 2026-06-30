@@ -1,5 +1,7 @@
 # Tyche — Cross-Venue Arbitrage
 
+> **Operating rules:** See [RULES.md](RULES.md) for authoritative sandbox policy, algorithms, truthfulness requirements, and ProphetX engineering checklist.
+
 Tyche scans **Kalshi** and **ProphetX** for **binary two-outcome** markets on the same event. When opposite sides can be bought for less than $1 payout minus fees and buffers, the system executes both legs automatically within configured risk limits.
 
 ## Non-goals

@@ -7,6 +7,12 @@ export interface OpportunityLeg {
   side: "yes" | "no";
   askPrice: number;
   depth: number;
+  /** Kalshi ticker for order placement */
+  ticker?: string;
+  /** ProphetX strike id */
+  strikeId?: string;
+  /** ProphetX American odds for this side */
+  americanOdds?: number;
 }
 
 export interface Opportunity {

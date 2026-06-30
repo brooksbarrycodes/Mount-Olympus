@@ -220,6 +220,7 @@ export class MountOlympusScene extends Phaser.Scene {
       { x: 1574, y: 1356, dx: 1, dy: 0 }, // agora west (garden/temple roads)
       { x: 2026, y: 1352, dx: -1, dy: 0 }, // agora east (groves road)
       { x: 1404, y: 1252, dx: -0.5, dy: -0.86 }, // Temple of Zeus SE entry
+      { x: 2520, y: 1220, dx: 0.2, dy: -0.9 }, // Temple of Tyche entry
       { x: 902, y: 1320, dx: -1, dy: 0 }, // Garden of the Muses east entry
     ];
     let seed = 71;
